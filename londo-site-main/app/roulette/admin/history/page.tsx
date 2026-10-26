@@ -46,7 +46,7 @@ export default async function Page({searchParams}:{searchParams:Promise<Record<s
             <span className="londo-status-badge">{statusLabel[s.status]}</span>
           </div>
           <dl className="mt-5 grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-3">
-            <div><dt className="text-xs text-muted">Когда</dt><dd className="mt-1 text-sm text-white">{s.createdAt.toLocaleString("ru-RU",{timeZone:"Europe/Berlin"})}</dd></div>
+            <div><dt className="text-xs text-muted">Когда</dt><dd className="mt-1 text-sm text-white">{s.createdAt.toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})} (МСК)</dd></div>
             <div><dt className="text-xs text-muted">Участие</dt><dd className="mt-1 text-sm text-white">{spinTypeLabels[s.spinType]}</dd></div>
             <div><dt className="text-xs text-muted">Списано</dt><dd className="mt-1 text-sm text-white">{coins(s.pricePaid.toString())} 🪙</dd></div>
           </dl>

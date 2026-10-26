@@ -26,7 +26,7 @@ function Wheel({ prizes, rotation, duration, spinning }: { prizes: WheelPrize[];
   </svg><div className="roulette-hub" aria-hidden="true"><span>L</span><small>LONDO</small></div></div>;
 }
 export function History({ spins }: { spins: Spin[] }) {
-  return <div className="roulette-history">{spins.length ? spins.map(s => <article key={s.id} className="roulette-history-row"><div><strong>{s.prizeName}</strong><p className="text-sm text-muted">{new Date(s.createdAt).toLocaleString("ru-RU", { timeZone: "Europe/Berlin" })} · {s.spinType === "FREE" ? "Бесплатное" : `${coins(s.pricePaid)} 🪙`}</p></div><span className="roulette-status">{statusLabel[s.status] || s.status}</span></article>) : <p className="text-muted">Здесь появятся ваши выигрыши.</p>}</div>;
+  return <div className="roulette-history">{spins.length ? spins.map(s => <article key={s.id} className="roulette-history-row"><div><strong>{s.prizeName}</strong><p className="text-sm text-muted">{new Date(s.createdAt).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК) · {s.spinType === "FREE" ? "Бесплатное" : `${coins(s.pricePaid)} 🪙`}</p></div><span className="roulette-status">{statusLabel[s.status] || s.status}</span></article>) : <p className="text-muted">Здесь появятся ваши выигрыши.</p>}</div>;
 }
 export function RoulettePlayer({ initial }: { initial: State }) {
   const [state,setState] = useState(initial), [wheel,setWheel] = useState(initial.prizes);

@@ -53,7 +53,7 @@ export default async function GiveawaysPage() {
                     <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 sm:justify-end sm:border-0 sm:pt-0">
                       <div className="sm:text-right">
                         <p className="text-xs text-muted">Окончание</p>
-                        <p className="mt-1 text-sm text-white">{giveaway.endsAt.toLocaleString("ru-RU")}</p>
+                        <p className="mt-1 text-sm text-white">{giveaway.endsAt.toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})} (МСК)</p>
                       </div>
                       <span className="text-lg text-muted transition group-hover:translate-x-1 group-hover:text-white" aria-hidden="true">→</span>
                     </div>
