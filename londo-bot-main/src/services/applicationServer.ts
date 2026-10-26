@@ -292,11 +292,13 @@ export function startApplicationServer(guild: Guild, config: ApplicationConfig, 
     }
     if (pathname === "/internal/discord/profile/nickname") {
       try {
-        const body = await readJson(request) as { discordUserId?: unknown; staticId?: unknown };
-        if (typeof body.discordUserId !== "string" || !/^\d{17,20}$/.test(body.discordUserId) || typeof body.staticId !== "string" || !/^[^\r\n\t]{1,30}$/.test(body.staticId.trim())) { respond(400, { code: "INVALID_INPUT" }); return; }
+        const body = await readJson(request) as { discordUserId?: unknown; staticId?: unknown; gameNickname?: unknown };
+        if (typeof body.discordUserId !== "string" || !/^\d{17,20}$/.test(body.discordUserId) || (body.staticId !== null && body.staticId !== undefined && (typeof body.staticId !== "string" || !/^[^\r\n\t]{1,30}$/.test(body.staticId.trim()))) || (body.gameNickname !== null && body.gameNickname !== undefined && (typeof body.gameNickname !== "string" || !/^[^\r\n\t]{1,32}$/.test(body.gameNickname.trim())))) { respond(400, { code: "INVALID_INPUT" }); return; }
         const member = await guild.members.fetch(body.discordUserId);
-        const nickname = member.nickname?.replace(/\s*\|\s*\d+\s*$/, "") || member.displayName;
-        await nicknameGuard.allowNicknameChange(member.id, () => member.setNickname(`${nickname} | ${body.staticId.trim()}`.slice(0, 32), "LONDO profile static updated"));
+        const current = member.nickname?.replace(/\s*\|\s*\d+\s*$/, "") || member.displayName;
+        const nickname = typeof body.gameNickname === "string" && body.gameNickname.trim() ? body.gameNickname.trim() : current;
+        const staticId = typeof body.staticId === "string" && body.staticId.trim() ? body.staticId.trim() : null;
+        await nicknameGuard.allowNicknameChange(member.id, () => member.setNickname((staticId ? `${nickname} | ${staticId}` : nickname).slice(0, 32), "LONDO profile identity updated"));
         respond(200, { ok: true });
       } catch { respond(503, { code: "PROFILE_NICKNAME_UNAVAILABLE" }); }
       return;

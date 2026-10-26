@@ -53,7 +53,7 @@ export function FamilyRoster({ family, user, roster }: FamilyRosterProps) {
             <div className="min-w-0">
               <p className="londo-ui-eyebrow">СОСТАВ СЕМЬИ · {family}</p>
               <h1 className="londo-ui-title" id="roster-title">Участники</h1>
-              <p className="londo-ui-description">Состав, ранги, даты рождения, активность и баланс участников. Нажми на имя, чтобы открыть профиль.</p>
+              <p className="londo-ui-description">Состав, ранги, активность и баланс участников. Нажми на имя, чтобы открыть профиль.</p>
             </div>
             <div className="flex flex-wrap gap-2" aria-label="Сводка состава">
               <div className="londo-roster-summary"><span>В составе</span><strong>{currentRoster.length}</strong></div>
@@ -88,7 +88,6 @@ export function FamilyRoster({ family, user, roster }: FamilyRosterProps) {
                   <tbody>{visibleRoster.map(member => (
                     <tr key={member.discordUserId}>
                       <td>{member.profileId ? <Link className="londo-roster-name" href={`/profile/${member.profileId}`} aria-label={`Открыть профиль ${member.gameNickname ?? member.discordDisplayName}`}>{member.gameNickname ?? member.discordDisplayName}</Link> : <span className="londo-roster-name">{member.gameNickname ?? member.discordDisplayName}</span>}{member.afkUntil && <span className="londo-ui-badge ml-2" data-tone="warning" title={`Отпуск до ${dateLabel(member.afkUntil)}`}>Отпуск</span>}</td>
-                      <td>{member.birthday ?? "—"}</td>
                       <td>{member.staticId ?? "—"}</td>
                       <td><span className="londo-roster-discord">{member.discordUserId}</span></td>
                       <td><span className="londo-roster-rank"><RankLabel roleId={member.rankRoleId} colors={member.rankRoleId && member.rankColor ? { [member.rankRoleId]: member.rankColor } : undefined}>{member.rankDisplayName ?? "Без ранга"}</RankLabel></span></td>
@@ -105,7 +104,7 @@ export function FamilyRoster({ family, user, roster }: FamilyRosterProps) {
                     <span className="londo-roster-rank"><RankLabel roleId={member.rankRoleId} colors={member.rankRoleId && member.rankColor ? { [member.rankRoleId]: member.rankColor } : undefined}>{member.rankDisplayName ?? "Без ранга"}</RankLabel></span>
                   </div>
                   {member.afkUntil && <span className="londo-ui-badge mt-3" data-tone="warning" title={`Отпуск до ${dateLabel(member.afkUntil)}`}>В отпуске до {dateLabel(member.afkUntil)}</span>}
-                  <dl className="londo-roster-mobile-facts"><div><dt>День рождения</dt><dd>{member.birthday ?? "—"}</dd></div><div><dt>Статик</dt><dd>{member.staticId ?? "—"}</dd></div><div><dt>Голос</dt><dd>{voiceLabel(member.totalVoiceSeconds)}</dd></div><div><dt>Баланс</dt><dd>{member.balance}</dd></div></dl>
+                  <dl className="londo-roster-mobile-facts"><div><dt>Статик</dt><dd>{member.staticId ?? "—"}</dd></div><div><dt>Голос</dt><dd>{voiceLabel(member.totalVoiceSeconds)}</dd></div><div><dt>Баланс</dt><dd>{member.balance}</dd></div></dl>
                 </article>
               ))}</div>
             </>

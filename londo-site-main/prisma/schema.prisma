@@ -898,6 +898,7 @@ model ProfileCustomization {
   profileTopColor String?
   profileBottomColor String?
   customStaticId String?
+  customGameNickname String?
   characters Json @default("[]")
   cardStyle String @default("MATTE")
   bio String @default("")

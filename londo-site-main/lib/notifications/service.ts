@@ -114,7 +114,7 @@ async function details(kind: NotificationKind, app: unknown, db: Db) {
     const end = data.requestedEndAt as Date;
     fields = [
       { name: "Период отпуска", value: `${date(start)} — ${date(end)}` },
-      { name: "Длительность", value: `${Math.max(0, Math.round((+end - +start) / 60000))} мин.`, inline: true },
+      { name: "Длительность", value: (() => { const minutes = Math.max(0, Math.round((+end - +start) / 60000)); const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), rest = minutes % 60; return [days ? `${days} дн.` : "", hours ? `${hours} ч.` : "", rest ? `${rest} мин.` : ""].filter(Boolean).join(" ") || "меньше минуты"; })(), inline: true },
       { name: "Причина", value: String(data.reason ?? "Не указана") },
     ];
   }
