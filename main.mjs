@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -10,6 +10,7 @@ const envFile = join(botDir, ".testingenv");
 
 function loadEnvFile(file) {
   const values = {};
+  if (!existsSync(file)) return values;
   for (const rawLine of readFileSync(file, "utf8").split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
