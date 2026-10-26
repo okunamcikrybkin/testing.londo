@@ -121,7 +121,7 @@ export function Header({ user = null }: HeaderProps) {
             {userMenuItems.map(item=><Link key={item.href} href={item.href} onClick={()=>setProfileMenuOpen(false)} aria-current={isCurrent(item.href) ? "page" : undefined} className="flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted hover:bg-white/5 hover:text-white aria-[current=page]:bg-white/10 aria-[current=page]:text-white">{item.href === "/family-settings" && <Icon name="settings" size={16}/>}<span>{item.label}</span></Link>)}
             <form action={DISCORD_SIGN_OUT_PATH} method="post" className="mt-1 border-t border-white/10 pt-1"><button type="submit" className="w-full rounded-xl px-3 py-2 text-left text-sm text-rose-300 hover:bg-rose-400/10">Выйти</button></form>
           </div> : null}
-        </div> : <><DiscordLoginButton className="hidden sm:inline-flex" /><DiscordLoginButton className="sm:hidden" compact /></>}
+        </div> : <DiscordLoginButton className="inline-flex" />}
         {user && <CoinBalance />}
         <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-white xl:hidden" aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? "Закрыть меню" : "Открыть меню"} onClick={() => setOpen((value) => !value)}>
           <span className="sr-only">{open ? "Закрыть меню" : "Открыть меню"}</span>
