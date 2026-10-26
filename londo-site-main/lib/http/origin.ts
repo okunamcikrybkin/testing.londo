@@ -5,5 +5,10 @@ export function configuredPublicOrigin(request: Request): string {
 
 export function sameSiteOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return Boolean(origin && new URL(origin).origin === configuredPublicOrigin(request));
+  if (!origin) return false;
+  const originUrl = new URL(origin);
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const requestHost = forwardedHost || request.headers.get("host");
+  if (requestHost && originUrl.host === requestHost) return true;
+  return originUrl.origin === configuredPublicOrigin(request);
 }
