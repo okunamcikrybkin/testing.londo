@@ -2,7 +2,7 @@ import type { RosterEntry } from "./data";
 import { FAMILY_RANKS } from "../rank-appearance/catalog";
 
 export const ROSTER_COLUMNS = [
-  { key: "name", label: "Имя" }, { key: "birthday", label: "День рождения" }, { key: "static", label: "Статик" },
+  { key: "name", label: "Имя" }, { key: "static", label: "Статик" },
   { key: "discord", label: "Discord ID" }, { key: "rank", label: "Ранг" },
   { key: "voice", label: "Время в войсе" }, { key: "coins", label: "Монеты" },
 ] as const;
@@ -40,11 +40,6 @@ export function selectRoster(rows: readonly RosterEntry[], query: string, sort: 
       const emptyA = !a.staticId?.trim(), emptyB = !b.staticId?.trim();
       if (emptyA !== emptyB) return emptyA ? 1 : -1;
       if (!emptyA && !emptyB) result = compareInteger(a.staticId!, b.staticId!);
-    } else if (sort.key === "birthday") {
-      const birthdayA = a.birthday?.split(".").reverse().join("") ?? "";
-      const birthdayB = b.birthday?.split(".").reverse().join("") ?? "";
-      if ((!birthdayA) !== (!birthdayB)) return birthdayA ? -1 : 1;
-      if (birthdayA && birthdayB) result = compareInteger(birthdayA, birthdayB);
     } else if (sort.key === "rank") {
       const x = rankPriority.get(a.rankRoleId ?? "") ?? 0, y = rankPriority.get(b.rankRoleId ?? "") ?? 0;
       if ((x === 0) !== (y === 0)) return x === 0 ? 1 : -1;
