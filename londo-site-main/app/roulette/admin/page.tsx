@@ -15,7 +15,7 @@ const prizeTypeLabels: Record<RoulettePrizeType, string> = {
 
 export default async function Page() {
   requireAdmin(await getCurrentUser());
-  const [settings,prizes] = await Promise.all([prisma.rouletteSettings.findUniqueOrThrow({where:{id:"global"}}),prisma.roulettePrize.findMany({where:{deletedAt:null},orderBy:[{sortOrder:"asc"},{id:"asc"}]})]);
+  const [settings,prizes] = await Promise.all([prisma.rouletteSettings.upsert({where:{id:"global"},create:{id:"global",isEnabled:true,paidSpinPrice:25,freeSpinCooldownHours:24},update:{}}),prisma.roulettePrize.findMany({where:{deletedAt:null},orderBy:[{sortOrder:"asc"},{id:"asc"}]})]);
   const activePrizes = prizes.filter(p=>p.isActive);
   const totalWeight = activePrizes.reduce((sum,p)=>sum+p.weight,0);
   return <>

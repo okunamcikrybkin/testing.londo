@@ -4,7 +4,7 @@ export function serialize<T>(value: T) { return JSON.parse(JSON.stringify(value)
 export async function playerState(user: Actor) {
   const scope = historyScope(user);
   const [settings, prizes, profile, history, lastFree] = await Promise.all([
-    prisma.rouletteSettings.findUniqueOrThrow({ where: { id: "global" } }),
+    prisma.rouletteSettings.upsert({ where: { id: "global" }, create: { id: "global", isEnabled: true, paidSpinPrice: 25, freeSpinCooldownHours: 24 }, update: {} }),
     prisma.roulettePrize.findMany({ where: { isActive: true, deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], select: { id: true, name: true, type: true, description: true } }),
     prisma.voiceProfile.findUnique({ where: { discordUserId: user.discordId } }),
     prisma.rouletteSpin.findMany({ where: scope, orderBy: { createdAt: "desc" }, take: 20 }),

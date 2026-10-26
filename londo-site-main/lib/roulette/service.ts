@@ -15,7 +15,7 @@ export async function spin(user: Actor | null, body: unknown, db = prisma, now =
     if (previous) return previous;
     // Admin catalog writes take this same row exclusively, preserving one catalog per draw.
     await tx.$queryRaw`SELECT id FROM roulette_settings WHERE id = 'global' FOR SHARE`;
-    const settings = await tx.rouletteSettings.findUniqueOrThrow({ where: { id: "global" } });
+    const settings = await tx.rouletteSettings.upsert({ where: { id: "global" }, create: { id: "global", isEnabled: true, paidSpinPrice: 25, freeSpinCooldownHours: 24 }, update: {} });
     if (!settings.isEnabled) throw new RouletteError("DISABLED", "Рулетка временно выключена.", 409);
     const createdAt = now();
     if (input.spinType === "FREE") {
