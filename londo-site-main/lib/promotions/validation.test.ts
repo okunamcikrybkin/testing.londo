@@ -1,0 +1,9 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {rankInput,settingsInput,answerInput,familyOf} from "./validation";
+const question={label:"Причина",placeholder:"",type:"PARAGRAPH",required:true,minLength:2,maxLength:100};
+const rank={name:"Тест",description:"",discordRoleId:"800000000000000001",sortOrder:1,isActive:true,isPosition:false,removePreviousRank:true,criteria:[{text:"Критерий",isRequired:true}],questions:[question]};
+test("family parser never falls back to another family",()=>{assert.equal(familyOf("PHOENIX"),"PHOENIX");assert.throws(()=>familyOf("other"));});
+test("rank editor validates ordered criteria and 1–5 Discord questions",()=>{const value=rankInput(rank);assert.equal(value.questions[0].sortOrder,0);assert.equal(value.criteria[0].text,"Критерий");for(const questions of [[],Array(6).fill(question)])assert.throws(()=>rankInput({...rank,questions}));assert.equal(rankInput({...rank,questions:Array(5).fill(question)}).questions.length,5);assert.throws(()=>rankInput({...rank,isPosition:true}));assert.throws(()=>rankInput({...rank,criteria:[{text:"",isRequired:true}]}));assert.throws(()=>rankInput({...rank,questions:[{...question,minLength:101}]}));});
+test("settings validates channel, enable switch and text",()=>{assert.equal(settingsInput({title:" X ",description:"",isEnabled:false,discordChannelId:""}).title,"X");assert.throws(()=>settingsInput({title:"",isEnabled:true}));assert.throws(()=>rankInput({...rank,discordRoleId:"everyone"}));});
+test("answers reject missing, short, long and stale question IDs; retain immutable labels",()=>{const questions=[{...question,id:"q1"}];assert.deepEqual(answerInput({q1:"  Ответ  "},questions),[{questionId:"q1",label:"Причина",value:"Ответ"}]);for(const input of [{},{q1:"a"},{q1:"x".repeat(101)},{q1:"ok",forged:"yes"}])assert.throws(()=>answerInput(input,questions));assert.equal(answerInput({},[{...questions[0],required:false}])[0].value,"");});

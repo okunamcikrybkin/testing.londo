@@ -1,0 +1,31 @@
+{
+  "name": "londo-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:faction-roles-db": "tsx scripts/faction-roles-integration.ts",
+    "test": "tsx --test lib/giveaways/*.test.ts lib/shop/*.test.ts lib/afk/*.test.ts lib/roulette/*.test.ts lib/economy/*.test.ts lib/promotions/*.test.ts lib/faction-roles/*.test.ts lib/notifications/*.test.ts lib/profile-customization/*.test.ts lib/rank-appearance/*.test.ts lib/access/*.test.ts lib/roster/*.test.ts lib/applications/*.test.ts lib/discord-checks/*.test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "^5"
+  }
+}

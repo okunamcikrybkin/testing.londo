@@ -1,0 +1,27 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../db/prisma";
+import { buyItem, settlePurchase } from "./purchase";
+function fixture(patch:Record<string,unknown>={}) {
+ const state={balance:100,purchases:[] as Record<string,unknown>[],ledger:[] as Record<string,unknown>[],logs:[] as Record<string,unknown>[]};
+ const item={id:"item",family:"MEMPHIS",name:"Item",price:30,type:"MANUAL",discordRoleId:null,isActive:true,deletedAt:null,settings:{status:"OPEN"},...patch};
+ let active=true;let queue=Promise.resolve();
+ const tx={
+ $queryRaw:async()=>[],
+ shopItem:{findUnique:async()=>item,findUniqueOrThrow:async()=>item},
+ familyMembership:{findUnique:async()=>({active})},
+ voiceProfile:{updateMany:async({where,data}:{where:{balance:{gte:number}};data:{balance:{decrement:number}}})=>{if(state.balance<where.balance.gte)return {count:0};state.balance-=data.balance.decrement;return {count:1};},update:async({data}:{data:{balance:{increment:number}}})=>{state.balance+=Number(data.balance.increment);}},
+ shopPurchase:{findFirst:async()=>state.purchases.find(p=>p.type==="DISCORD_ROLE"&&p.status==="PENDING_FULFILLMENT"),findUniqueOrThrow:async({where}:{where:{id:string}})=>{const p=state.purchases.find(p=>p.id===where.id);if(!p)throw Error("NOT_FOUND");return p;},create:async({data}:{data:Record<string,unknown>})=>{const p={...data,status:"PENDING_FULFILLMENT"};state.purchases.push(p);return p;},updateMany:async({where,data}:{where:Record<string,unknown>;data:Record<string,unknown>})=>{const p=state.purchases.find(p=>p.id===where.id&&p.status===where.status&&p.type===where.type);if(!p)return{count:0};Object.assign(p,data);return{count:1};}},
+ economyTransaction:{findUnique:async({where}:{where:{sourceId:string}})=>state.ledger.find(l=>l.sourceId===where.sourceId),findFirst:async()=>state.ledger[0],create:async({data}:{data:Record<string,unknown>})=>{if(state.ledger.some(l=>l.sourceId===data.sourceId))throw Error("DUPLICATE");state.ledger.push(data);return data;}},
+ auditLog:{create:async({data}:{data:Record<string,unknown>})=>state.logs.push(data)}
+ };
+ const db={$transaction:async(fn:(client:typeof tx)=>Promise<unknown>)=>{let release!:()=>void;const prev=queue;queue=new Promise<void>(r=>release=r);await prev;const snapshot=structuredClone(state);try{return await fn(tx);}catch(e){Object.assign(state,snapshot);throw e;}finally{release();}}} as unknown as typeof prisma;
+ return {state,db,deps:{db,roleCheck:async()=>({code:"OK"})},membership:(value:boolean)=>{active=value;}};
+}
+test("manual debit, metadata, interaction retry and fulfillment",async()=>{const f=fixture();const p=await buyItem("item","user","interaction",f.deps);assert.equal(p.status,"PENDING_FULFILLMENT");assert.equal(f.state.balance,70);await buyItem("item","user","interaction",f.deps);assert.equal(f.state.balance,70);assert.equal(f.state.ledger.length,1);assert.deepEqual(f.state.ledger[0].metadata,{shopItemId:"item",purchaseId:p.id,family:"MEMPHIS",itemName:"Item",discordRoleId:null});await settlePurchase(p.id,false,"actor",false,f.db);assert.equal(f.state.purchases[0].status,"COMPLETED");assert.ok(f.state.purchases[0].completedAt);await settlePurchase(p.id,true,"actor",false,f.db);assert.equal(f.state.balance,70);});
+test("insufficient, disabled, closed and wrong-family leave no writes",async()=>{for(const patch of [{price:101},{isActive:false},{settings:{status:"CLOSED"}},{wrongFamily:true}]){const f=fixture(patch);if(patch.wrongFamily)f.membership(false);await assert.rejects(buyItem("item","user","interaction",f.deps));assert.equal(f.state.balance,100);assert.equal(f.state.purchases.length,0);assert.equal(f.state.ledger.length,0);}});
+test("concurrent purchases cannot overspend; repeated interaction charges once",async()=>{const f=fixture({price:60});const results=await Promise.allSettled([buyItem("item","user","a",f.deps),buyItem("item","user","b",f.deps)]);assert.equal(results.filter(r=>r.status==="fulfilled").length,1);assert.equal(f.state.balance,40);const g=fixture();await Promise.all([buyItem("item","user","a",g.deps),buyItem("item","user","a",g.deps)]);assert.equal(g.state.balance,70);});
+test("manual refund is atomic and idempotent",async()=>{const f=fixture();const p=await buyItem("item","user","a",f.deps);await Promise.all([settlePurchase(p.id,true,"actor",false,f.db),settlePurchase(p.id,true,"actor",false,f.db)]);assert.equal(f.state.balance,100);assert.equal(f.state.ledger.length,2);assert.equal(f.state.purchases[0].status,"REFUNDED");});
+test("role already owned does not charge; role failure refund and completion",async()=>{const f=fixture({type:"DISCORD_ROLE",discordRoleId:"role"});await assert.rejects(buyItem("item","user","a",{...f.deps,roleCheck:async()=>({code:"ALREADY_OWNED"})}),/ALREADY_OWNED/);assert.equal(f.state.balance,100);const p=await buyItem("item","user","b",f.deps);await assert.rejects(buyItem("item","user","c",f.deps),/ROLE_PENDING/);await settlePurchase(p.id,true,null,true,f.db);await settlePurchase(p.id,true,null,true,f.db);assert.equal(f.state.balance,100);const q=await buyItem("item","user","d",f.deps);await settlePurchase(q.id,false,null,true,f.db);assert.equal(f.state.balance,70);assert.equal(f.state.purchases[1].status,"COMPLETED");assert.ok(f.state.logs.some(l=>l.action==="SHOP_ROLE_GRANTED"));});
+test("decimal prices use Prisma Decimal",()=>{assert.equal(new Prisma.Decimal("1.0001").plus("2.0002").toString(),"3.0003");});

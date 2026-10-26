@@ -1,0 +1,59 @@
+.main { width: min(1160px, calc(100% - 48px)); margin: 0 auto; padding: 42px 0 70px; }
+.welcome { display: flex; min-height: 310px; align-items: center; justify-content: space-between; gap: 35px; border-bottom: 1px solid rgba(255,255,255,.14); padding: 16px 6% 35px; }
+.eyebrow { margin: 0; color: var(--accent-soft); font-size: 10px; font-weight: 620; letter-spacing: .14em; text-transform: uppercase; }
+.welcome h1 { max-width: 18ch; margin: 17px 0 0; color: #f4f1eb; font-size: clamp(39px,6vw,68px); font-weight: 630; letter-spacing: -.07em; line-height: 1.02; }
+.welcome h1 span { color: var(--accent-soft); }
+.welcomeText { max-width: 49ch; margin: 16px 0 0; color: #a7a6ab; font-size: 14px; line-height: 1.65; }
+.welcomeLogo { width: min(28vw,250px); height: auto; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,.44)); }
+.familySection { padding: 35px 6% 40px; }
+.sectionHeading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+.sectionHeading h2 { margin: 8px 0 0; color: #f0ede7; font-size: clamp(24px,3.5vw,36px); font-weight: 620; letter-spacing: -.05em; }
+.familyList { display: grid; gap: 14px; }
+.familyLink { position: relative; display: grid; grid-template-columns: 38px 68px minmax(0,1fr) auto; align-items: center; gap: 18px; min-height: 110px; overflow: hidden; border: 1px solid rgba(255,255,255,.13); border-radius: 20px; background: linear-gradient(115deg,rgba(255,255,255,.09),rgba(255,255,255,.035) 45%,rgba(8,9,12,.4)),rgba(13,14,18,.58); padding: 12px 18px; text-decoration: none; -webkit-backdrop-filter: blur(18px) saturate(135%); backdrop-filter: blur(18px) saturate(135%); box-shadow: inset 0 1px rgba(255,255,255,.08),0 18px 55px rgba(0,0,0,.2); transition: background-color 200ms ease,border-color 200ms ease,box-shadow 220ms ease,transform 220ms cubic-bezier(.22,1,.36,1); }
+.familyLink:hover { transform: translateY(-2px); background-color: rgba(255,255,255,.08); box-shadow: inset 0 1px rgba(255,255,255,.13),0 24px 65px rgba(0,0,0,.32); }
+.familyLink:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 4px; }
+.memphis { border-color: rgba(94,234,212,.28); }
+.memphis:hover { border-color: rgba(94,234,212,.58); }
+.phoenix { border-color: rgba(255,138,31,.3); }
+.phoenix:hover { border-color: rgba(255,138,31,.58); }
+.familyNumber { color: #878890; font-size: 10px; }
+.familyLogo { width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 9px 16px rgba(0,0,0,.25)); }
+.familyDetails { display: grid; gap: 5px; }
+.familyDetails strong { color: #f2eee7; font-size: 20px; font-weight: 650; letter-spacing: .06em; }
+.familyDetails small { color: #9c9ca2; font-size: 12px; }
+.openFamily { display: inline-flex; align-items: center; gap: 12px; color: #d8d4cc; font-size: 12px; }
+.memphis:hover .openFamily { color: #72ddcf; }
+.phoenix:hover .openFamily { color: #ffad72; }
+.noFamily { display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid rgba(255,255,255,.14); border-radius: 20px; background: linear-gradient(140deg,rgba(230,183,122,.09),rgba(255,255,255,.035) 56%,rgba(8,9,12,.46)),rgba(13,14,18,.62); padding: 24px; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.noFamily h3 { margin: 0; color: #ece8e1; font-size: 15px; font-weight: 600; }
+.noFamily p { margin: 7px 0 0; color: #9c9ca2; font-size: 12px; line-height: 1.6; }
+.actionLink { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; gap: 9px; border-radius: 999px; background: var(--accent-soft); padding: 0 16px; color: #17120b; font-size: 12px; font-weight: 620; text-decoration: none; }
+.actionLink:hover { background: #ffdda9; }
+.shortcuts { display: flex; flex-wrap: wrap; gap: 12px 26px; border-top: 1px solid rgba(255,255,255,.11); padding: 19px 6% 0; }
+.shortcuts a { display: inline-flex; min-height: 40px; align-items: center; gap: 8px; color: #a6a5aa; font-size: 12px; text-decoration: none; transition: color 180ms ease; }
+.shortcuts a:hover { color: var(--accent-soft); }
+.familyLink:focus-visible,.actionLink:focus-visible,.shortcuts a:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+
+@media(max-width:640px) {
+  .main { width: calc(100% - 34px); padding: 29px 0 52px; }
+  .welcome { min-height: 218px; gap: 8px; padding: 8px 0 24px; }
+  .welcome h1 { max-width: 15ch; font-size: clamp(35px,10vw,48px); }
+  .welcomeText { max-width: 37ch; font-size: 12px; }
+  .welcomeLogo { width: 32vw; min-width: 105px; max-width: 155px; margin-right: -15px; }
+  .familySection { padding: 28px 0 30px; }
+  .sectionHeading { align-items: flex-end; }
+  .sectionHeading h2 { font-size: 25px; }
+  .familyList { gap: 11px; }
+  .familyLink { grid-template-columns: 24px 52px minmax(0,1fr) 25px; gap: 9px; min-height: 88px; padding: 9px 12px; }
+  .familyLogo { width: 48px; height: 48px; }
+  .familyDetails strong { font-size: 15px; }
+  .familyDetails small { font-size: 10px; line-height: 1.4; }
+  .openFamily { justify-self: end; font-size: 0; }
+  .openFamily span { font-size: 17px; }
+  .noFamily { align-items: flex-start; flex-direction: column; }
+  .shortcuts { gap: 3px 15px; padding: 13px 0 0; }
+  .shortcuts a { font-size: 10px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .familyLink,.shortcuts a { transition: none; }
+}

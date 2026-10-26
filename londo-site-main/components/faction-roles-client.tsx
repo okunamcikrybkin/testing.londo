@@ -1,0 +1,36 @@
+"use client";
+import { useEffect, useState } from "react";
+import { Field } from "./promotions/ui";
+import styles from "./promotions/promotions.module.css";
+type Button={id:string;name:string;discordRoleId:string|null;sortOrder:number;enabled:boolean};
+type Panel={title:string;description:string;channelId:string|null;messageId:string|null;version:number;buttons:Button[]};
+type Options={channels:{id:string;name:string}[];roles:{id:string;name:string}[]};
+async function api(path="",body?:object){const response=await fetch("/api/faction-roles"+path,{method:body?"POST":"GET",headers:{"content-type":"application/json"},body:body?JSON.stringify(body):undefined});const data=await response.json();if(!response.ok)throw Error(data.error||"Не удалось выполнить запрос.");return data;}
+export function FactionRolesClient(){
+ const [panel,setPanel]=useState<Panel|null>(null),[options,setOptions]=useState<Options>({channels:[],roles:[]}),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[dirty,setDirty]=useState(false);
+ useEffect(()=>{let active=true;Promise.all([api(),api("?mode=options")]).then(([p,o])=>{if(active){setPanel(p);setOptions(o);}}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
+ function change(p:Panel){setPanel(p);setDirty(true);setNotice("");}
+ function changeButton(id:string,patch:Partial<Button>){if(panel)change({...panel,buttons:panel.buttons.map(b=>b.id===id?{...b,...patch}:b)});}
+ async function run(operation:string){setBusy(true);setError("");setNotice("");try{const result=await api("",{operation,value:panel});setPanel(result.panel);setDirty(false);setNotice(result.warning||(operation==="save"?"Настройки сохранены.":"Панель опубликована и обновлена."));}catch(e){setError(e instanceof Error?e.message:"Ошибка запроса.");}finally{setBusy(false);}}
+ return <div className={styles.root} aria-busy={busy}><header className="londo-admin-heading"><p className="londo-admin-eyebrow">Панель администратора · Discord</p><h1 className="londo-admin-title">Роли фракций</h1><p className="londo-admin-description">Настройте публикацию панели, привяжите Discord-роли и выберите, какие фракции участники смогут включать самостоятельно.</p></header>
+ {error&&<div role="alert" className={styles.notice} data-tone="error">{error}</div>}{notice&&<p role="status" className="my-4 rounded-2xl border border-accent/25 bg-accent/5 p-4 text-sm">{notice}</p>}
+ {!panel?<p className="py-8 text-muted">{error?"Обновите страницу после подключения bot.":"Загрузка настроек…"}</p>:<div className="grid min-w-0 grid-cols-1 gap-6">
+ <form className="min-w-0 space-y-6" onSubmit={e=>{e.preventDefault();void run("save");}}><fieldset disabled={busy} className="min-w-0 space-y-6">
+ <section className="londo-card min-w-0 rounded-3xl p-4 sm:p-6"><h2 className="londo-admin-section-title mb-5">Discord-панель</h2><div className={styles.formStack}>
+ <Field title="Заголовок"><input required maxLength={100} value={panel.title} onChange={e=>change({...panel,title:e.target.value})}/></Field>
+ <Field title="Описание"><textarea maxLength={1500} rows={3} value={panel.description} onChange={e=>change({...panel,description:e.target.value})}/></Field>
+ <Field title="Discord channel"><select value={panel.channelId||""} onChange={e=>change({...panel,channelId:e.target.value||null})}><option value="">Выберите канал</option>{panel.channelId&&!options.channels.some(c=>c.id===panel.channelId)&&<option value={panel.channelId}>Текущий канал недоступен</option>}{options.channels.map(c=><option key={c.id} value={c.id}>#{c.name}</option>)}</select></Field>
+ <p className="text-sm text-muted">Discord message: <span className="text-white">{panel.messageId?"Опубликовано":"Не опубликовано"}</span></p>
+ </div></section>
+ <section className="londo-card min-w-0 rounded-3xl p-4 sm:p-6"><h2 className="londo-admin-section-title mb-2">Фракции</h2><p className="mb-5 text-sm text-muted">Выберите реальную роль и включите фракцию, чтобы показать её кнопку в Discord.</p>
+ <div className="space-y-4">{panel.buttons.map((b,index)=><article key={b.id} className="min-w-0 rounded-2xl border border-white/10 p-4"><div className="mb-3 flex items-center justify-between gap-2"><h3 className="min-w-0 truncate font-semibold">{b.name||"Новая фракция"}</h3><button type="button" className={styles.button} aria-label={`Удалить ${b.name}`} onClick={()=>change({...panel,buttons:panel.buttons.filter(x=>x.id!==b.id)})}>Удалить</button></div><div className={styles.formStack}>
+ <Field title={`Название фракции ${index+1}`}><input required maxLength={80} value={b.name} onChange={e=>changeButton(b.id,{name:e.target.value})}/></Field>
+ <Field title={`Discord-роль ${index+1}`}><select required={b.enabled} value={b.discordRoleId||""} onChange={e=>changeButton(b.id,{discordRoleId:e.target.value||null})}><option value="">Выберите роль</option>{b.discordRoleId&&!options.roles.some(r=>r.id===b.discordRoleId)&&<option value={b.discordRoleId}>Текущая роль недоступна</option>}{options.roles.map(r=><option key={r.id} value={r.id}>@{r.name}</option>)}</select></Field>
+ <div className="grid grid-cols-2 gap-3"><Field title={`Порядок ${index+1}`}><input type="number" required min={-10000} max={10000} value={b.sortOrder} onChange={e=>changeButton(b.id,{sortOrder:Number(e.target.value)})}/></Field><Field title={`Статус ${index+1}`}><select value={String(b.enabled)} onChange={e=>changeButton(b.id,{enabled:e.target.value==="true"})}><option value="true">Включена</option><option value="false">Выключена</option></select></Field></div>
+ </div></article>)}</div>
+ <button type="button" disabled={panel.buttons.length>=25} className={styles.button+" mt-4"} onClick={()=>change({...panel,buttons:[...panel.buttons,{id:crypto.randomUUID(),name:"Новая фракция",discordRoleId:null,sortOrder:Math.min(10000,Math.max(0,...panel.buttons.map(b=>b.sortOrder))+1),enabled:false}]})}>Добавить фракцию</button>
+ </section><div className="flex flex-wrap gap-3"><button className={styles.primary} disabled={busy}>{busy?"Подождите…":"Сохранить"}</button><button type="button" className={styles.button} disabled={busy||dirty||!panel.channelId||!!panel.messageId} onClick={()=>void run("publish")}>Опубликовать панель</button><button type="button" className={styles.button} disabled={busy||dirty||!panel.messageId||!panel.channelId} onClick={()=>void run("refresh")}>Обновить панель</button></div>{dirty&&<p className="text-sm text-muted">Сохраните изменения перед публикацией.</p>}
+ </fieldset></form>
+ <aside className="min-w-0"><section className="londo-card min-w-0 rounded-3xl p-4 sm:p-6 "><h2 className="londo-admin-section-title mb-5">Предпросмотр</h2><div className={styles.panelPreview+" min-w-0 break-words"}><h3>{panel.title}</h3><p className="whitespace-pre-wrap">{panel.description}</p><div className="mt-4 flex min-w-0 flex-wrap gap-2">{panel.buttons.filter(b=>b.enabled&&b.discordRoleId).sort((a,b)=>a.sortOrder-b.sortOrder||a.id.localeCompare(b.id)).map(b=><span key={b.id} className="max-w-full break-words rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm">{b.name}</span>)}</div></div>{!panel.buttons.some(b=>b.enabled&&b.discordRoleId)&&<p className="mt-4 text-sm text-muted">Назначьте роли и включите фракции — здесь появятся кнопки.</p>}</section></aside>
+ </div>}</div>;
+}

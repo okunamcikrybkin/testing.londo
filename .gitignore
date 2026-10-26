@@ -1,0 +1,22 @@
+# Local dependencies and generated output
+**/node_modules/
+**/.next/
+**/dist/
+**/out/
+**/coverage/
+**/*.tsbuildinfo
+
+# Local configuration and secrets
+**/.env
+**/.env.local
+**/.testingenv
+!.env.example
+!**/.env.example
+
+# Logs and private keys
+**/*.log
+**/*.pem
+**/*.key
+
+# Local editor/agent instructions
+/.github/skills/

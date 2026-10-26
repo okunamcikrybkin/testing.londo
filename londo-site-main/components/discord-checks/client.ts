@@ -1,0 +1,1 @@
+export async function applyRequest<T>(body:object):Promise<T>{const r=await fetch("/api/apply",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error||"Операция не выполнена.");return data as T;}

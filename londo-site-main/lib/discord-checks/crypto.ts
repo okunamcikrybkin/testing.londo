@@ -1,0 +1,4 @@
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+function key() { const value = process.env.DISCORD_OAUTH_ENCRYPTION_KEY; if (!value || !/^[a-fA-F0-9]{64}$/.test(value)) throw Error("OAuth encryption is not configured"); return Buffer.from(value,"hex"); }
+export function seal(value: unknown): string { const iv=randomBytes(12), cipher=createCipheriv("aes-256-gcm",key(),iv); cipher.setAAD(Buffer.from("londo-discord-check-v1")); const data=Buffer.concat([cipher.update(JSON.stringify(value),"utf8"),cipher.final()]); return [iv,cipher.getAuthTag(),data].map(x=>x.toString("base64url")).join("."); }
+export function unseal<T>(value: string): T { const [iv,tag,data]=value.split(".").map(x=>Buffer.from(x,"base64url")); const cipher=createDecipheriv("aes-256-gcm",key(),iv); cipher.setAAD(Buffer.from("londo-discord-check-v1")); cipher.setAuthTag(tag); return JSON.parse(Buffer.concat([cipher.update(data),cipher.final()]).toString("utf8")) as T; }

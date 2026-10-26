@@ -1,0 +1,969 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  RECRUIT
+  HIGH_STAFF
+  OWNER
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum Family {
+  MEMPHIS
+  PHOENIX
+}
+
+enum ApplicationStatus {
+  NEW
+  CALL
+  ACCEPTED
+  REJECTED
+}
+
+enum GiveawayStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum GiveawayFamily {
+  MEMPHIS
+  PHOENIX
+  ALL
+}
+
+/// Normalized domains emitted by the separate LONDO Discord bot.
+/// Website-originated actions remain in AuditLog and are adapted at read time.
+enum LogEventCategory {
+  APPLICATION
+  RANK
+  PROMOTION
+  AFK
+  VACATION
+  BALANCE
+  MEMBERSHIP
+  SYSTEM
+}
+
+enum LogEventType {
+  APPLICATION_CREATED
+  APPLICATION_CALL_STARTED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  RANK_CHANGED
+  ROSTER_RANK_CHANGED
+  PROMOTION_CREATED
+  PROMOTION_ACCEPTED
+  PROMOTION_REJECTED
+  AFK_STARTED
+  AFK_ENDED
+  VACATION_STARTED
+  VACATION_ENDED
+  BALANCE_CHANGED
+  MEMBER_JOINED
+  MEMBER_LEFT
+  SYSTEM_EVENT
+}
+
+/// A Discord identity can exist before the matching Discord user signs into the site.
+model DiscordIdentity {
+  promotionApplications PromotionApplication[]
+  discordUserId String             @id @map("discord_user_id")
+  username      String
+  displayName   String             @map("display_name")
+  avatarUrl     String?            @map("avatar_url")
+  gameNickname  String?            @map("game_nickname")
+  staticId      String?            @map("static_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  afkApplications AfkApplication[]
+  afkSessions AfkSession[]
+  memberships   FamilyMembership[]
+  twitchProfile TwitchProfile?
+  twitchState   TwitchStreamState?
+
+  @@map("discord_identities")
+}
+
+/// One administrator-managed Twitch channel per Discord identity.
+model TwitchProfile {
+  id            String   @id @default(cuid())
+  discordUserId String   @unique @map("discord_user_id")
+  twitchLogin   String   @unique @map("twitch_login")
+  twitchUserId  String?  @unique @map("twitch_user_id")
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  identity DiscordIdentity   @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade)
+  state    TwitchStreamState?
+
+  @@index([enabled, twitchLogin])
+  @@map("twitch_profiles")
+}
+
+/// Durable stream state prevents the same Twitch stream from being announced after a bot restart.
+model TwitchStreamState {
+  discordUserId      String   @id @map("discord_user_id")
+  twitchUserId       String?  @map("twitch_user_id")
+  currentStreamId    String?  @map("current_stream_id")
+  announcedStreamId  String?  @map("announced_stream_id")
+  isLive             Boolean  @default(false) @map("is_live")
+  startedAt          DateTime? @map("started_at")
+  lastSeenOnlineAt   DateTime? @map("last_seen_online_at")
+  lastSeenOfflineAt  DateTime? @map("last_seen_offline_at")
+  lastCheckedAt      DateTime @default(now()) @map("last_checked_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  identity DiscordIdentity @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade, map: "twitch_stream_states_discord_identity_fkey")
+  profile  TwitchProfile?  @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade, map: "twitch_stream_states_profile_fkey")
+
+  @@index([isLive, lastCheckedAt])
+  @@map("twitch_stream_states")
+}
+
+enum EconomyTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum EconomyTransactionReason {
+  ADMIN_GRANT
+  ADMIN_DEBIT
+  ROULETTE_SPIN
+  ROULETTE_REWARD
+  VOICE
+  SHOP_PURCHASE
+  SHOP_REFUND
+}
+
+enum EconomyTransactionSource {
+  ADMIN
+  ROULETTE
+  VOICE_TRACKER
+  SHOP
+}
+
+enum ShopStatus {
+  OPEN
+  CLOSED
+}
+
+enum ShopItemType {
+  MANUAL
+  DISCORD_ROLE
+}
+
+enum ShopPurchaseStatus {
+  PENDING_FULFILLMENT
+  COMPLETED
+  REFUNDED
+}
+
+/// Global, family-independent voice and economy state for one Discord identity.
+model VoiceProfile {
+  discordUserId          String   @id @map("discord_user_id")
+  totalVoiceSeconds      BigInt   @default(0) @map("total_voice_seconds")
+  balance                Decimal  @default(0) @db.Decimal(20, 4)
+  xp                     Int      @default(0)
+  voiceSecondsRemainder  Int      @default(0) @map("voice_seconds_remainder")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  activeSession          VoiceActiveSession?
+  transactions           EconomyTransaction[]
+  rouletteSpins          RouletteSpin[]
+  shopPurchases          ShopPurchase[]
+
+  @@map("voice_profiles")
+}
+
+/// A single persisted active segment. Its checkpoint cursor prevents duplicate credits.
+model VoiceActiveSession {
+  id               String   @id @default(cuid())
+  discordUserId    String   @unique @map("discord_user_id")
+  active           Boolean  @default(true)
+  segmentStartedAt DateTime @map("segment_started_at")
+  lastCheckpointAt DateTime @map("last_checkpoint_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  profile          VoiceProfile @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade)
+
+  @@map("voice_active_sessions")
+}
+
+/// Durable economy ledger. One settlement source is inserted at most once.
+model EconomyTransaction {
+  metadata Json?
+  id            String                   @id @default(cuid())
+  discordUserId String                   @map("discord_user_id")
+  amount        Decimal                  @db.Decimal(20, 4)
+  type          EconomyTransactionType
+  reason        EconomyTransactionReason
+  source        EconomyTransactionSource
+  sourceId      String                   @unique @map("source_id")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  profile       VoiceProfile             @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade)
+
+  @@index([discordUserId, createdAt])
+  @@map("economy_transactions")
+}
+
+model FamilyShopSettings {
+  id               String     @id @default(cuid())
+  family           Family     @unique
+  title            String     @default("🛒 Магазин семьи")
+  description      String     @default("Магазин открыт. Покупай товары через кнопки справа.")
+  closedText       String?    @map("closed_text")
+  status           ShopStatus @default(OPEN)
+  discordChannelId String?    @map("discord_channel_id")
+  discordMessageId String?    @map("discord_message_id")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  items            ShopItem[]
+
+  @@map("family_shop_settings")
+}
+
+model ShopItem {
+  id             String       @id @default(cuid())
+  family         Family
+  name           String
+  description    String?
+  price          Decimal      @db.Decimal(20, 4)
+  type           ShopItemType
+  discordRoleId  String?      @map("discord_role_id")
+  sortOrder      Int          @default(0) @map("sort_order")
+  isActive       Boolean      @default(true) @map("is_active")
+  deletedAt      DateTime?    @map("deleted_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  settings       FamilyShopSettings @relation(fields: [family], references: [family], onDelete: Cascade)
+  purchases      ShopPurchase[]
+
+  @@index([family, isActive, sortOrder])
+  @@map("shop_items")
+}
+
+model ShopPurchase {
+  id            String             @id @default(cuid())
+  itemId        String             @map("item_id")
+  family        Family
+  discordUserId String             @map("discord_user_id")
+  price         Decimal            @db.Decimal(20, 4)
+  type          ShopItemType
+  status        ShopPurchaseStatus @default(PENDING_FULFILLMENT)
+  completedAt   DateTime?          @map("completed_at")
+  refundedAt    DateTime?          @map("refunded_at")
+  fulfilledById String?            @map("fulfilled_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  item          ShopItem           @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  profile       VoiceProfile       @relation(fields: [discordUserId], references: [discordUserId], onDelete: Restrict)
+  fulfilledBy   User?              @relation("ShopPurchaseFulfilledBy", fields: [fulfilledById], references: [id], onDelete: SetNull)
+
+  @@index([family, status, createdAt])
+  @@index([discordUserId, createdAt])
+  @@map("shop_purchases")
+}
+
+/// Family-scoped roster state from the new LONDO Bot. One Discord identity may be active in both families.
+model FamilyMembership {
+  id              String          @id @default(cuid())
+  discordUserId   String          @map("discord_user_id")
+  family          Family
+  active          Boolean         @default(true)
+  rankKey         String?         @map("rank_key")
+  rankDisplayName String?         @map("rank_display_name")
+  rankRoleId      String?         @map("rank_role_id")
+  rankPriority    Int?            @map("rank_priority")
+  lastSyncedAt    DateTime        @map("last_synced_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  identity DiscordIdentity @relation(fields: [discordUserId], references: [discordUserId], onDelete: Cascade)
+
+  @@unique([discordUserId, family])
+  @@index([family, active, rankPriority])
+  @@map("family_memberships")
+}
+
+enum LogEventSource {
+  LONDO_BOT
+}
+
+model UserAccessSnapshot {
+  roleIds Json @default("[]") @map("role_ids")
+  userId String @id @map("user_id")
+  memphisRole UserRole @default(USER) @map("memphis_role")
+  phoenixRole UserRole @default(USER) @map("phoenix_role")
+  observedAt DateTime @map("observed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("user_access_snapshots")
+}
+
+model StaffAccessGrant {
+  id String @id @default(cuid())
+  userId String @map("user_id")
+  role UserRole
+  memphisRole UserRole @default(USER) @map("memphis_role")
+  phoenixRole UserRole @default(USER) @map("phoenix_role")
+  sourceRequestId String? @map("source_request_id")
+  grantedByUserId String? @map("granted_by_user_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+  revokedAt DateTime? @map("revoked_at")
+  revokedByUserId String? @map("revoked_by_user_id")
+  revokeReason String? @map("revoke_reason")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, revokedAt])
+  @@map("staff_access_grants")
+}
+
+model StaffAccessCredential {
+  userId String @id @map("user_id")
+  pinHash String? @map("pin_hash")
+  pinSetAt DateTime? @map("pin_set_at")
+  failedAttempts Int @default(0) @map("failed_attempts")
+  lockedUntil DateTime? @map("locked_until")
+  credentialVersion Int @default(1) @map("credential_version")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("staff_access_credentials")
+}
+
+model User {
+  discordOAuthConsent DiscordOAuthConsent?
+  uiTheme String @default("ORIGINAL") @map("ui_theme")
+  staffAccessGrants StaffAccessGrant[]
+  staffAccessCredential StaffAccessCredential?
+  accessSnapshot UserAccessSnapshot?
+  profileCustomization ProfileCustomization?
+  id          String     @id @default(cuid())
+  discordId   String     @unique @map("discord_id")
+  username    String
+  displayName String     @map("display_name")
+  avatar      String?
+  email       String?    @unique
+  role        UserRole   @default(USER)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  lastLoginAt DateTime?  @map("last_login_at")
+  birthdayMonth Int?    @map("birthday_month")
+  birthdayDay Int?      @map("birthday_day")
+  birthdayYear Int?     @map("birthday_year")
+  birthdayLastCelebratedYear Int? @map("birthday_last_celebrated_year")
+  birthdayRoleGrantedAt DateTime? @map("birthday_role_granted_at")
+
+  reviewedAfkApplications AfkApplication[] @relation("AfkReviewer")
+  rouletteSpins RouletteSpin[]
+  sessions  Session[]
+  auditLogs AuditLog[] @relation("AuditActor")
+  reviewedApplications FamilyApplication[] @relation("ApplicationReviewer")
+  accessRequests StaffAccessRequest[] @relation("AccessRequestUser")
+  reviewedAccessRequests StaffAccessRequest[] @relation("AccessRequestReviewer")
+  giveaways              Giveaway[]
+  giveawayDraws          GiveawayDrawEvent[] @relation("GiveawayDrawActor")
+  fulfilledShopPurchases ShopPurchase[] @relation("ShopPurchaseFulfilledBy")
+
+  @@index([role])
+  @@index([status])
+  @@index([birthdayMonth, birthdayDay])
+  @@index([birthdayRoleGrantedAt])
+  @@map("users")
+}
+
+model StaffAccessRequest {
+  memphisRole UserRole @default(USER) @map("memphis_role")
+  phoenixRole UserRole @default(USER) @map("phoenix_role")
+  discordRoleIds Json @default("[]") @map("discord_role_ids")
+  id                String              @id @default(cuid())
+  userId            String              @map("user_id")
+  requestedRole     UserRole            @map("requested_role")
+  status            AccessRequestStatus @default(PENDING)
+  reviewedByUserId  String?             @map("reviewed_by_user_id")
+  reviewedAt        DateTime?           @map("reviewed_at")
+  rejectionReason   String?             @map("rejection_reason")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  user       User  @relation("AccessRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("AccessRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([requestedRole, status, createdAt])
+  @@map("staff_access_requests")
+}
+
+model Session {
+  staffPinVerifiedAt DateTime? @map("staff_pin_verified_at")
+  staffPinCredentialVersion Int? @map("staff_pin_credential_version")
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Discord/domain events received through the internal bot intake contract.
+/// This intentionally does not replace AuditLog, which records website actions.
+model LogEvent {
+  id                 String           @id @default(cuid())
+  source             LogEventSource
+  sourceEventId      String           @map("source_event_id")
+  type               LogEventType
+  category           LogEventCategory
+  action             String
+  result             String?
+  family             Family?
+  serverId           String?          @map("server_id")
+  actorUserId        String?          @map("actor_user_id")
+  actorDiscordId     String?          @map("actor_discord_id")
+  actorUsername      String?          @map("actor_username")
+  actorDisplayName   String?          @map("actor_display_name")
+  targetUserId       String?          @map("target_user_id")
+  targetDiscordId    String?          @map("target_discord_id")
+  targetUsername     String?          @map("target_username")
+  targetDisplayName  String?          @map("target_display_name")
+  discordChannelId   String?          @map("discord_channel_id")
+  discordMessageId   String?          @map("discord_message_id")
+  summary            String
+  metadata           Json?
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  @@unique([source, sourceEventId])
+  @@index([createdAt, id])
+  @@index([family, createdAt])
+  @@index([category, createdAt])
+  @@index([actorDiscordId, createdAt])
+  @@index([targetDiscordId, createdAt])
+  @@map("log_events")
+}
+
+model FamilyApplication {
+  discordChecks DiscordApplicationCheck[]
+  id                    String            @id @default(cuid())
+  family                Family
+  discordUserId         String            @map("discord_user_id")
+  discordUsername       String            @map("discord_username")
+  discordDisplayName    String            @map("discord_display_name")
+  discordAvatar         String?           @map("discord_avatar")
+  status                ApplicationStatus @default(NEW)
+  answers               Json
+  rejectionReason       String?           @map("rejection_reason")
+  reviewedByUserId      String?           @map("reviewed_by_user_id")
+  callStartedAt         DateTime?         @map("call_started_at")
+  completedAt           DateTime?         @map("completed_at")
+  discordTextChannelId  String?           @map("discord_text_channel_id")
+  discordVoiceChannelId String?           @map("discord_voice_channel_id")
+  operationLock         String?           @map("operation_lock")
+  operationLockedAt     DateTime?         @map("operation_locked_at")
+  claimedByUserId       String?           @map("claimed_by_user_id")
+  claimedAt             DateTime?         @map("claimed_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  reviewedBy User? @relation("ApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([family, status, createdAt])
+  @@index([discordUserId])
+  @@index([reviewedByUserId])
+  @@index([claimedByUserId, status])
+  @@map("family_applications")
+}
+
+model Giveaway {
+  id               String           @id @default(cuid())
+  family           GiveawayFamily
+  status           GiveawayStatus   @default(DRAFT)
+  prize            String
+  description      String
+  imageUrl         String?          @map("image_url")
+  discordChannelId String           @map("discord_channel_id")
+  requiredRoleId   String?          @map("required_role_id")
+  mentionRoleId    String?          @map("mention_role_id")
+  winnerCount      Int              @map("winner_count")
+  endsAt           DateTime         @map("ends_at")
+  createdByUserId  String           @map("created_by_user_id")
+  discordMessageId String?          @map("discord_message_id")
+  startedAt        DateTime?        @map("started_at")
+  endedAt          DateTime?        @map("ended_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  createdBy    User                 @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  participants GiveawayParticipant[]
+  winners      GiveawayWinner[]
+  drawEvents   GiveawayDrawEvent[]
+
+  @@index([status, endsAt])
+  @@index([family, createdAt])
+  @@map("giveaways")
+}
+
+model GiveawayParticipant {
+  id            String   @id @default(cuid())
+  giveawayId    String   @map("giveaway_id")
+  discordUserId String   @map("discord_user_id")
+  joinedAt      DateTime @default(now()) @map("joined_at")
+
+  giveaway Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@unique([giveawayId, discordUserId])
+  @@index([giveawayId, joinedAt])
+  @@map("giveaway_participants")
+}
+
+model GiveawayWinner {
+  id            String    @id @default(cuid())
+  giveawayId    String    @map("giveaway_id")
+  discordUserId String    @map("discord_user_id")
+  position      Int
+  selectedAt    DateTime  @default(now()) @map("selected_at")
+  isRerolled    Boolean   @default(false) @map("is_rerolled")
+  rerolledAt    DateTime? @map("rerolled_at")
+
+  giveaway Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@unique([giveawayId, discordUserId])
+  @@index([giveawayId, position, isRerolled])
+  @@map("giveaway_winners")
+}
+
+model GiveawayDrawEvent {
+  id              String   @id @default(cuid())
+  giveawayId      String   @map("giveaway_id")
+  action          String
+  position        Int?
+  previousWinnerId String? @map("previous_winner_id")
+  winnerId        String?  @map("winner_id")
+  actorUserId     String?  @map("actor_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  giveaway Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  actor    User?    @relation("GiveawayDrawActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([giveawayId, createdAt])
+  @@map("giveaway_draw_events")
+}
+
+
+enum AfkApplicationStatus {
+  PENDING
+  APPROVING
+  APPROVED
+  REJECTED
+  CANCELLED
+  ENDED
+}
+enum AfkSessionStatus {
+  GRANTING
+  ACTIVE
+  ENDING
+  ENDED
+  FAILED
+}
+model AfkApplication {
+  id String @id @default(cuid())
+  requestKey String @unique @map("request_key")
+  discordUserId String @map("discord_user_id")
+  family Family
+  reason String
+  requestedStartAt DateTime @map("requested_start_at")
+  requestedEndAt DateTime @map("requested_end_at")
+  status AfkApplicationStatus @default(PENDING)
+  createdAt DateTime @default(now()) @map("created_at")
+  reviewedAt DateTime? @map("reviewed_at")
+  reviewedByDiscordId String? @map("reviewed_by_discord_id")
+  rejectionReason String? @map("rejection_reason")
+  claimedByDiscordId String? @map("claimed_by_discord_id")
+  claimedAt DateTime? @map("claimed_at")
+  approvedAt DateTime? @map("approved_at")
+  endedAt DateTime? @map("ended_at")
+  identity DiscordIdentity @relation(fields:[discordUserId],references:[discordUserId],onDelete:Restrict)
+  reviewer User? @relation("AfkReviewer",fields:[reviewedByDiscordId],references:[discordId],onDelete:SetNull)
+  session AfkSession?
+  @@index([family,status,createdAt])
+  @@index([discordUserId,family])
+  @@map("afk_applications")
+}
+model AfkSession {
+  id String @id @default(cuid())
+  applicationId String @unique @map("application_id")
+  discordUserId String @map("discord_user_id")
+  family Family
+  discordRoleId String @map("discord_role_id")
+  status AfkSessionStatus @default(GRANTING)
+  startAt DateTime? @map("start_at")
+  endAt DateTime @map("end_at")
+  endedAt DateTime? @map("ended_at")
+  endReason String? @map("end_reason")
+  endedByDiscordId String? @map("ended_by_discord_id")
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  application AfkApplication @relation(fields:[applicationId],references:[id],onDelete:Restrict)
+  identity DiscordIdentity @relation(fields:[discordUserId],references:[discordUserId],onDelete:Restrict)
+  @@index([status,endAt])
+  @@index([discordUserId,family])
+  @@map("afk_sessions")
+}
+
+enum RoulettePrizeType {
+  COINS
+  DISCORD_ROLE
+  MANUAL
+  NOTHING
+}
+enum RouletteSpinType {
+  FREE
+  PAID
+}
+enum RouletteSpinStatus {
+  COMPLETED
+  PENDING_FULFILLMENT
+  PENDING_DELIVERY
+  FAILED
+}
+model RouletteSettings {
+  id String @id @default("global")
+  isEnabled Boolean @default(true)
+  paidSpinPrice Decimal @default(25) @db.Decimal(20,4)
+  freeSpinCooldownHours Int @default(24)
+  updatedAt DateTime @updatedAt
+  @@map("roulette_settings")
+}
+model RoulettePrize {
+  id String @id @default(cuid())
+  name String
+  description String?
+  type RoulettePrizeType
+  weight Int
+  coinAmount Decimal? @db.Decimal(20,4)
+  discordRoleId String?
+  manualText String?
+  isActive Boolean @default(true)
+  sortOrder Int @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  spins RouletteSpin[]
+  @@index([isActive,sortOrder])
+  @@map("roulette_prizes")
+}
+model RouletteSpin {
+  id String @id @default(cuid())
+  userId String
+  discordUserId String
+  prizeId String
+  spinType RouletteSpinType
+  pricePaid Decimal @db.Decimal(20,4)
+  status RouletteSpinStatus
+  requestId String
+  prizeName String
+  prizeType RoulettePrizeType
+  coinAmount Decimal? @db.Decimal(20,4)
+  discordRoleId String?
+  manualText String?
+  wheelSnapshot Json
+  deliveryNote String?
+  fulfilledById String?
+  createdAt DateTime @default(now())
+  fulfilledAt DateTime?
+  user User @relation(fields:[userId],references:[id],onDelete:Restrict)
+  profile VoiceProfile @relation(fields:[discordUserId],references:[discordUserId],onDelete:Restrict)
+  prize RoulettePrize @relation(fields:[prizeId],references:[id],onDelete:Restrict)
+  @@unique([userId,requestId])
+  @@index([userId,spinType,createdAt])
+  @@index([status,createdAt])
+  @@map("roulette_spins")
+}
+
+
+enum PromotionStatus {
+  PENDING
+  APPROVING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+enum PromotionQuestionType {
+  SHORT
+  PARAGRAPH
+}
+model PromotionSettings {
+  family Family @id
+  title String @default("Система повышений LONDO")
+  description String @default("Выберите сервер и ранг, ознакомьтесь с критериями и подайте заявку.")
+  discordChannelId String?
+  discordMessageId String?
+  publishedChannelId String?
+  isEnabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("promotion_settings")
+}
+model PromotionRank {
+  id String @id @default(cuid())
+  family Family
+  name String
+  description String?
+  discordRoleId String @unique
+  sortOrder Int @default(0)
+  isActive Boolean @default(false)
+  isPosition Boolean @default(false)
+  removePreviousRank Boolean @default(false)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  criteria PromotionCriterion[]
+  questions PromotionQuestion[]
+  applications PromotionApplication[]
+  @@index([family,isActive,sortOrder])
+  @@map("promotion_ranks")
+}
+model PromotionCriterion {
+  id String @id @default(cuid())
+  rankId String
+  text String
+  sortOrder Int
+  isRequired Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rank PromotionRank @relation(fields:[rankId],references:[id],onDelete:Cascade)
+  @@map("promotion_criteria")
+}
+model PromotionQuestion {
+  id String @id @default(cuid())
+  rankId String
+  label String
+  placeholder String?
+  type PromotionQuestionType
+  required Boolean @default(true)
+  minLength Int?
+  maxLength Int?
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rank PromotionRank @relation(fields:[rankId],references:[id],onDelete:Cascade)
+  @@map("promotion_questions")
+}
+model PromotionApplication {
+  id String @id @default(cuid())
+  requestKey String @unique
+  discordUserId String
+  family Family
+  rankId String
+  status PromotionStatus @default(PENDING)
+  rankName String
+  currentRank String?
+  identitySnapshot Json
+  criteriaSnapshot Json
+  answers Json
+  currentDiscordRoleIds Json
+  rolePlan Json?
+  lastError String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  reviewedByDiscordId String?
+  rejectionReason String?
+  claimedByDiscordId String?
+  claimedAt DateTime?
+  approvedAt DateTime?
+  rank PromotionRank @relation(fields:[rankId],references:[id],onDelete:Restrict)
+  identity DiscordIdentity @relation(fields:[discordUserId],references:[discordUserId],onDelete:Restrict)
+  @@index([family,status,createdAt])
+  @@index([discordUserId,createdAt])
+  @@map("promotion_applications")
+}
+
+model FactionRolePanelSettings {
+  id String @id @default("default")
+  channelId String?
+  messageId String?
+  publishedChannelId String?
+  title String @default("Выдача ролей фракции")
+  description String @default("Нажми на кнопку с названием фракции, чтобы получить или снять роль.")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  buttons FactionRoleButton[]
+  @@map("faction_role_panel_settings")
+}
+model FactionRoleButton {
+  id String @id @default(cuid())
+  panelId String @default("default")
+  name String
+  discordRoleId String?
+  sortOrder Int @default(0)
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  panel FactionRolePanelSettings @relation(fields:[panelId],references:[id],onDelete:Cascade)
+  @@index([panelId,sortOrder])
+  @@map("faction_role_buttons")
+}
+// Desired state survives duplicate interactions, network retries and bot restarts.
+model FactionRoleOperation {
+  id String @id
+  discordUserId String
+  buttonId String
+  roleId String
+  name String
+  granted Boolean
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([discordUserId,buttonId,createdAt])
+  @@map("faction_role_operations")
+}
+
+model FamilyNotificationSettings {
+  family Family @id
+  channelId String? @unique
+  applicationPingRoleId String?
+  promotionPingRoleId String?
+  vacationPingRoleId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("family_notification_settings")
+}
+model ApplicationNotificationReceipt {
+  eventId String @id
+  family Family
+  channelId String
+  messageId String
+  resolvedState String? @map("resolved_state")
+  claimedState String? @map("claimed_state")
+  createdAt DateTime @default(now())
+  @@map("application_notification_receipts")
+}
+
+model ProfileCustomization {
+  id String @id @default(cuid())
+  userId String @unique
+  // Legacy presentation fields retained for compatibility.
+  theme String @default("DEFAULT")
+  accentColor String @default("THEME")
+  bannerPreset String @default("DEFAULT")
+  customBannerUrl String?
+  avatarFrame String @default("NONE")
+  avatarFrameColor String?
+  profileTopColor String?
+  profileBottomColor String?
+  cardStyle String @default("MATTE")
+  bio String @default("")
+  customStatus String @default("")
+  layout String @default("CLASSIC")
+  showDiscordUsername Boolean @default(true)
+  showDiscordId Boolean @default(false)
+  showGameNickname Boolean @default(true)
+  showStaticId Boolean @default(false)
+  showFamily Boolean @default(true)
+  showRank Boolean @default(true)
+  showCoins Boolean @default(false)
+  showVoiceTime Boolean @default(false)
+  showGames Boolean @default(true)
+  showSocialLinks Boolean @default(true)
+  showBadges Boolean @default(true)
+  selectedBadges Json @default("[]")
+  games Json @default("[]")
+  favoriteGame String?
+  links Json @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@map("profile_customizations")
+}
+
+model RankAppearance {
+  roleId String @id
+  color String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("rank_appearances")
+}
+
+model DiscordGuildWatchlist {
+  id String @id @default(cuid())
+  guildId String @unique
+  name String
+  inviteUrl String?
+  enabled Boolean @default(true)
+  createdByUserId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DiscordOAuthConsent {
+  id String @id @default(cuid())
+  userId String @unique
+  discordId String @unique
+  scopes String
+  consentedAt DateTime @default(now())
+  revokedAt DateTime?
+  lastCheckedAt DateTime?
+  credentials String?
+  tokenExpiresAt DateTime?
+  expiresAt DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DiscordApplicationCheck {
+  id String @id @default(cuid())
+  applicationId String
+  checkedByUserId String
+  checkedAt DateTime @default(now())
+  expiresAt DateTime
+  status String
+  matchedGuildIds String[]
+  resultSnapshot Json?
+  application FamilyApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  @@index([applicationId, checkedAt])
+  @@index([expiresAt])
+}

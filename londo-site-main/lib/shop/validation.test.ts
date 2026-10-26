@@ -1,0 +1,8 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { parseItemInput, parseSettingsInput } from "./validation";
+const item={family:"MEMPHIS",name:"Товар",price:"450",type:"MANUAL",sortOrder:0,isActive:true};
+test("create item / edit price / enable-disable preserve validated fields",()=>{assert.equal(parseItemInput(item).price,"450.0000");assert.equal(parseItemInput({...item,name:"Новое имя",price:2000}).name,"Новое имя");assert.equal(parseItemInput({...item,isActive:false}).isActive,false);assert.equal(parseItemInput({...item,isActive:true}).isActive,true);});
+test("reject invalid prices, names, families, sorting and booleans",()=>{for(const price of [-1,NaN,Infinity,null,undefined,"",true,"hello",1000000001,0.00001])assert.throws(()=>parseItemInput({...item,price}));for(const patch of [{name:"x".repeat(101)},{family:"ALL"},{sortOrder:-1},{sortOrder:1.5},{sortOrder:2147483648},{isActive:"false"}])assert.throws(()=>parseItemInput({...item,...patch}));assert.equal(parseItemInput({...item,price:0}).price,"0.0000");});
+test("ROLE requires a snowflake and MANUAL clears role",()=>{assert.throws(()=>parseItemInput({...item,type:"DISCORD_ROLE"}));assert.equal(parseItemInput({...item,type:"DISCORD_ROLE",discordRoleId:"123456789012345678"}).discordRoleId,"123456789012345678");assert.equal(parseItemInput({...item,discordRoleId:"123456789012345678"}).discordRoleId,null);});
+test("settings validate status and channel",()=>{const s={family:"PHOENIX",title:"Shop",description:"Description",status:"CLOSED",discordChannelId:null};assert.equal(parseSettingsInput(s).status,"CLOSED");assert.throws(()=>parseSettingsInput({...s,status:"INVALID"}));assert.throws(()=>parseSettingsInput({...s,discordChannelId:"foo"}));});

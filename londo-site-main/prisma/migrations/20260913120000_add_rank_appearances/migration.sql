@@ -1,0 +1,1 @@
+CREATE TABLE "rank_appearances" ("roleId" TEXT NOT NULL, "color" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "rank_appearances_pkey" PRIMARY KEY ("roleId"));

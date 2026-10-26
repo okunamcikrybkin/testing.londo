@@ -1,0 +1,9 @@
+{
+  "name": "londo-dev",
+  "private": true,
+  "scripts": {
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\dev.ps1",
+    "start": "node main.mjs",
+    "build:site": "npm run build --prefix londo-site-main"
+  }
+}
