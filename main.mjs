@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const botDir = join(root, "londo-bot-main");
@@ -37,6 +37,12 @@ const env = {
 };
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const siteBuild = spawnSync(npm, ["run", "build", "--workspace=londo-site-main"], { cwd: root, env, stdio: "inherit" });
+if (siteBuild.status !== 0) {
+  console.error(`[londo] Site build failed with code ${siteBuild.status ?? 1}.`);
+  process.exit(siteBuild.status ?? 1);
+}
+
 const children = [
   spawn(npm, ["start"], { cwd: siteDir, env, stdio: "inherit" }),
   spawn(npm, ["start"], { cwd: botDir, env, stdio: "inherit" }),

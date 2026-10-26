@@ -1,9 +1,14 @@
 {
   "name": "londo-dev",
   "private": true,
+  "workspaces": [
+    "londo-bot-main",
+    "londo-site-main"
+  ],
   "scripts": {
     "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\dev.ps1",
     "start": "node main.mjs",
-    "build:site": "npm run build --prefix londo-site-main"
+    "build": "npm run build --workspace=londo-site-main",
+    "build:site": "npm run build --workspace=londo-site-main"
   }
 }
