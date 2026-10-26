@@ -37,6 +37,12 @@ const env = {
 };
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const seed = spawnSync(npm, ["run", "db:seed"], { cwd: root, env, stdio: "inherit" });
+if (seed.status !== 0) {
+  console.error(`[londo] Database initialization failed with code ${seed.status ?? 1}.`);
+  process.exit(seed.status ?? 1);
+}
+
 const siteBuild = spawnSync(npm, ["run", "build", "--workspace=londo-site-main"], { cwd: root, env, stdio: "inherit" });
 if (siteBuild.status !== 0) {
   console.error(`[londo] Site build failed with code ${siteBuild.status ?? 1}.`);

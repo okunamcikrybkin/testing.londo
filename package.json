@@ -25,6 +25,7 @@
     "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\dev.ps1",
     "start": "node main.mjs",
     "build": "npm run build --workspace=londo-site-main",
-    "build:site": "npm run build --workspace=londo-site-main"
+    "build:site": "npm run build --workspace=londo-site-main",
+    "db:seed": "node londo-site-main/scripts/seed-defaults.mjs"
   }
 }
