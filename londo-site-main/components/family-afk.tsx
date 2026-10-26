@@ -13,7 +13,7 @@ const afkStatusLabels: Record<string, string> = {
   CANCELLED: "Отменено",
   ENDED: "Завершено",
 };
-const date = (value: Date | null) => value ? value.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" }) : "—";
+const date = (value: Date | null) => value ? `${value.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК)` : "—";
 
 export async function FamilyAfk({ family, query }: { family: Family; query: { tab?: string; status?: string; user?: string } }) {
   const user = await getAfkStaffUser(family);
@@ -36,7 +36,7 @@ export async function FamilyAfk({ family, query }: { family: Family; query: { ta
         <section className="londo-card mt-5 rounded-[2rem] p-6 sm:p-8">
           <p className="londo-eyebrow">{family}</p>
           <h1 className="londo-admin-title mt-2">Отпуск</h1>
-          <p className="londo-admin-description mt-2">Заявки и активные отпуска семьи. Время: Europe/Berlin.</p>
+          <p className="londo-admin-description mt-2">Заявки и активные отпуска семьи. Время отображается по Москве (МСК). Максимальный срок — 7 дней.</p>
           <nav className="my-6 flex gap-2 border-b border-white/10" aria-label="Статусы отпусков">
             {[["pending", "Ожидают"], ["active", "Активные"], ["history", "История"]].map(([key, label]) => (
               <Link

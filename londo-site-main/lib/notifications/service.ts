@@ -37,6 +37,7 @@ export async function save(value: unknown, actorId: string) {
     applicationPingRoleId: role(body.applicationPingRoleId),
     promotionPingRoleId: role(body.promotionPingRoleId),
     vacationPingRoleId: role(body.vacationPingRoleId),
+    vacationMaxHours: Number.isInteger(body.vacationMaxHours) && Number(body.vacationMaxHours) >= 1 && Number(body.vacationMaxHours) <= 720 ? Number(body.vacationMaxHours) : 168,
   };
   await settings();
   await prisma.$transaction(async (tx) => {
@@ -54,7 +55,7 @@ function jsonValue(value: unknown, key: string, fallback = "Не указано"
 }
 
 function date(value: Date | null | undefined) {
-  return value ? value.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" }) : "Не указано";
+  return value ? `${value.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК)` : "Не указано";
 }
 
 function record(value: unknown): Record<string, unknown> {

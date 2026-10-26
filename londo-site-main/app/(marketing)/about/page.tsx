@@ -13,7 +13,7 @@ const owners = [
   { name: "SENTICEE", discord: "senticee", links: [{ kind: "twitch", label: "Twitch", href: "https://www.twitch.tv/senticee" }, { kind: "youtube", label: "YouTube", href: "https://www.youtube.com/@senticee" }] },
   { name: "Vafelion", discord: "vaflya2101", links: [{ kind: "twitch", label: "Twitch", href: "https://www.twitch.tv/vaflya2121" }] },
   { name: "Ricky", discord: "drago_grow", links: [{ kind: "twitch", label: "Twitch", href: "https://www.twitch.tv/drago_grow" }] },
-  { name: "Enruqie", discord: "enniozzz", links: [] },
+  { name: "Enrique", discord: "enniozzz", links: [] },
 ] as const;
 
 function SocialIcon({ kind }: { kind: "twitch" | "youtube" }) {

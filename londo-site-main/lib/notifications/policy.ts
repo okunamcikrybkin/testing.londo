@@ -1,6 +1,6 @@
 export type NotificationFamily="MEMPHIS";
 export type NotificationKind="APPLICATION"|"PROMOTION"|"VACATION";
-export type NotificationSettings={family:NotificationFamily;channelId:string|null;applicationPingRoleId:string|null;promotionPingRoleId:string|null;vacationPingRoleId:string|null};
+export type NotificationSettings={family:NotificationFamily;channelId:string|null;applicationPingRoleId:string|null;promotionPingRoleId:string|null;vacationPingRoleId:string|null;vacationMaxHours:number};
 export type NotificationField={name:string;value:string;inline?:boolean};
 export type NotificationContent={title:string;path:string;userId:string;kindLabel:string;participantName:string;fields:NotificationField[]};
 export function notificationDestination(settings:readonly NotificationSettings[],family:NotificationFamily,kind:NotificationKind){const config=settings.find(s=>s.family===family);if(!config?.channelId)return null;const roleId=kind==="APPLICATION"?config.applicationPingRoleId:kind==="PROMOTION"?config.promotionPingRoleId:config.vacationPingRoleId;return {channelId:config.channelId,roleId};}

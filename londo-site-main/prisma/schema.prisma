@@ -869,6 +869,7 @@ model FamilyNotificationSettings {
   applicationPingRoleId String?
   promotionPingRoleId String?
   vacationPingRoleId String?
+  vacationMaxHours Int @default(168)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("family_notification_settings")
@@ -896,6 +897,8 @@ model ProfileCustomization {
   avatarFrameColor String?
   profileTopColor String?
   profileBottomColor String?
+  customStaticId String?
+  characters Json @default("[]")
   cardStyle String @default("MATTE")
   bio String @default("")
   customStatus String @default("")

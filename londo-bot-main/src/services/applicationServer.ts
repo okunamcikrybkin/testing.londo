@@ -290,6 +290,17 @@ export function startApplicationServer(guild: Guild, config: ApplicationConfig, 
       } catch { respond(200,{status:"UNAVAILABLE"}); }
       return;
     }
+    if (pathname === "/internal/discord/profile/nickname") {
+      try {
+        const body = await readJson(request) as { discordUserId?: unknown; staticId?: unknown };
+        if (typeof body.discordUserId !== "string" || !/^\d{17,20}$/.test(body.discordUserId) || typeof body.staticId !== "string" || !/^[^\r\n\t]{1,30}$/.test(body.staticId.trim())) { respond(400, { code: "INVALID_INPUT" }); return; }
+        const member = await guild.members.fetch(body.discordUserId);
+        const nickname = member.nickname?.replace(/\s*\|\s*\d+\s*$/, "") || member.displayName;
+        await nicknameGuard.allowNicknameChange(member.id, () => member.setNickname(`${nickname} | ${body.staticId.trim()}`.slice(0, 32), "LONDO profile static updated"));
+        respond(200, { ok: true });
+      } catch { respond(503, { code: "PROFILE_NICKNAME_UNAVAILABLE" }); }
+      return;
+    }
     if (pathname === "/internal/discord/access/member") {
       try {
         const body = await readJson(request) as { discordId?: unknown };

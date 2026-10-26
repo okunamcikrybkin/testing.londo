@@ -3,12 +3,12 @@ import type { Family,FamilyRoleIds } from "../types/family.js";
 import type { SiteLogConfig } from "../config/siteLogs.js";
 import { getMemberFamilies } from "./members.js";
 import { logWarning } from "../utils/logger.js";
-export function afkRoleId(family:Family){const value=(process.env[family+"_AFK_ROLE_ID"]||process.env.FAMILY_AFK_ROLE_ID||"").trim();if(!/^\d{17,20}$/.test(value))throw Error("AFK_ROLE_NOT_CONFIGURED");return value;}
+export function afkRoleId(family:Family){const value=(process.env[family+"_AFK_ROLE_ID"]||process.env.FAMILY_AFK_ROLE_ID||"1545123264655794258").trim();if(!/^\d{17,20}$/.test(value))throw Error("AFK_ROLE_NOT_CONFIGURED");return value;}
 export function afkPanel() {
   const container = new ContainerBuilder().setAccentColor(0x2dd4bf)
     .addTextDisplayComponents(new TextDisplayBuilder().setContent("# Отпуск\n> Здесь можно оформить отпуск с указанием причины и даты окончания."))
     .addSeparatorComponents(new SeparatorBuilder())
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent("**Кнопки:**\n• Уйти в отпуск — откроется форма с причиной и сроком отпуска\n• Список отпусков — покажет активные отпуска\n• Вернуться из отпуска — завершить отпуск досрочно\n\n**Форматы даты окончания:**\n• HH:MM DD.MM.YYYY\n• HH:MM DD.MM\n• HH:MM\n• 10m, 2h, 3d\n\nВремя: Europe/Berlin. Максимум — 24 часа; 3d превышает лимит.\nОтпуск начинается только после одобрения сотрудником семьи."))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent("**Кнопки:**\n• Уйти в отпуск — откроется форма с причиной и сроком отпуска\n• Список отпусков — покажет активные отпуска\n• Вернуться из отпуска — завершить отпуск досрочно\n\n**Форматы даты окончания:**\n• HH:MM DD.MM.YYYY\n• HH:MM DD.MM\n• HH:MM\n• 10m, 2h, 3d\n\nВремя: Москва (МСК). Максимум — 7 дней.\nОтпуск начинается только после одобрения сотрудником семьи."))
     .addSeparatorComponents(new SeparatorBuilder());
   for (const [text, label, id, style] of [
     ["Оформить отпуск", "Уйти в отпуск", "afk:apply", ButtonStyle.Primary],
@@ -20,7 +20,7 @@ export function afkPanel() {
 export function afkModal(family: Family) {
   return new ModalBuilder().setCustomId("afk:submit:" + family).setTitle("Заявка на отпуск").addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("reason").setLabel("Причина").setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(1000)),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("duration").setLabel("Срок / дата окончания (Europe/Berlin)").setPlaceholder("18:30 06.09.2026 / 18:30 / 10m / 2h").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(40)),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("duration").setLabel("Срок / дата окончания (Москва, МСК)").setPlaceholder("18:30 06.09.2026 / 18:30 / 10m / 2h").setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(40)),
   );
 }
 /** Recognize both the existing embed and its V2 replacement without changing button IDs. */

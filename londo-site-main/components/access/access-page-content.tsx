@@ -23,7 +23,7 @@ const familyScopes = (s: Scopes) => {
   const families = [s.memphisRole !== "USER" ? "MEMPHIS" : null].filter((family): family is "MEMPHIS" => Boolean(family));
   return families.length ? <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">{families.map((family) => <span key={family} className="inline-flex items-center gap-1.5"><FamilyServerIcon family={family} size="inline" /><span>{family}</span></span>)}</span> : "Обычный участник";
 };
-const date = (value: Date) => value.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" });
+const date = (value: Date) => `${value.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК)`;
 const statusLabels = { PENDING: "На рассмотрении", APPROVED: "Одобрено", REJECTED: "Отклонено", CANCELLED: "Отменено" };
 
 function Account({ user }: { user: { displayName: string; username: string; avatar: string | null } }) {

@@ -96,6 +96,8 @@ export function isValidBotSecret(requestSecret: string | null): boolean {
 export async function createFamilyApplication(input: ApplicationIntake) {
   if (input.family !== "MEMPHIS") throw new ApplicationInputError("Семья больше недоступна.");
   return prisma.$transaction(async (transaction) => {
+    const active = await transaction.familyApplication.findFirst({ where: { family: input.family, discordUserId: input.discordUserId, status: { in: ["NEW", "CALL"] } }, select: { id: true } });
+    if (active) throw new ApplicationInputError("У пользователя уже есть активная заявка.");
     const application = await transaction.familyApplication.create({
       data: input,
     });

@@ -44,7 +44,7 @@
 /* Two independent profile colors; raw user colors never sit beneath body text.
    Even white is limited to 12% over #101015 on the brightest text surface. */
 .scope{--profile-top-color:#27232F;--profile-bottom-color:var(--londo-surface,#141419);--profile-accent:#31D5BF;--p-accent:color-mix(in srgb,var(--profile-accent) 40%,#ffffff);--profile-upper:color-mix(in srgb,var(--profile-top-color) 12%,#101015);--profile-lower:color-mix(in srgb,var(--profile-bottom-color) 10%,#101015);--muted:#b7b3bf;--line:color-mix(in srgb,var(--profile-bottom-color) 7%,#ffffff26)}
-.profile,.compact{background:linear-gradient(180deg,var(--profile-upper) 0%,var(--profile-upper) 22%,var(--profile-lower) 70%,var(--profile-lower) 100%);border-color:var(--line)}
+.profile,.compact{background:linear-gradient(180deg,var(--profile-top-color) 0%,color-mix(in srgb,var(--profile-top-color) 72%,#101015) 22%,var(--profile-bottom-color) 70%,var(--profile-bottom-color) 100%);border-color:var(--line)}
 .banner{background:linear-gradient(160deg,color-mix(in srgb,var(--profile-top-color) 65%,#101015),var(--profile-upper))}
 .banner:after{background:linear-gradient(180deg,color-mix(in srgb,var(--profile-top-color) 14%,transparent),transparent 48%,var(--profile-upper) 100%)}
 .bannerCaption{color:#f3f0eb;text-shadow:0 1px 4px #000;background:#101015c9;padding:5px 8px;border-radius:3px;width:fit-content;max-width:calc(100% - 48px)}

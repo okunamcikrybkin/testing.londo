@@ -1,6 +1,7 @@
-export const VACATION_TIME_ZONE = "Europe/Berlin";
+export const VACATION_TIME_ZONE = "Europe/Moscow";
 const MINUTE = 60000;
 const DAY = 24 * 60 * MINUTE;
+export const VACATION_MAX_DURATION = Math.max(MINUTE, Number(process.env.VACATION_MAX_HOURS || 168) * 60 * MINUTE);
 const formatter = new Intl.DateTimeFormat("en-GB", { timeZone: VACATION_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
 type WallTime = { year: number; month: number; day: number; hour: number; minute: number };
 function parts(date: Date): WallTime & { second: number } {
@@ -25,7 +26,7 @@ function instants(wall: WallTime): number[] {
     return (Object.keys(wall) as (keyof WallTime)[]).every(key => wall[key] === local[key]);
   }).sort((a, b) => a - b);
 }
-export function parseVacationEnd(value: unknown, now = new Date()): Date {
+export function parseVacationEnd(value: unknown, now = new Date(), maxDuration = VACATION_MAX_DURATION): Date {
   if (typeof value !== "string" || !Number.isFinite(+now)) throw Error("INVALID_DURATION");
   const text = value.trim();
   let timestamp: number;
@@ -53,6 +54,6 @@ export function parseVacationEnd(value: unknown, now = new Date()): Date {
     timestamp = validCalendar({year, month, day, hour: 0, minute: 0}) ? +new Date(text) : NaN;
   } else throw Error("INVALID_DURATION");
   const duration = timestamp - +now;
-  if (!Number.isFinite(duration) || duration < MINUTE || duration > DAY) throw Error("INVALID_DURATION");
+  if (!Number.isFinite(duration) || duration < MINUTE || duration > maxDuration) throw Error("INVALID_DURATION");
   return new Date(timestamp);
 }
