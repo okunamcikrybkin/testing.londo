@@ -59,7 +59,7 @@ export function ProfileView({profile, settings, owner=false, discordRoles=[]}: P
         <div className={s.identity} data-ui-profile="identity">
           <div className={s.avatarButton}><ProfileAvatar profile={profile} frame={settings.avatarFrame} frameColor={settings.avatarFrameColor} /></div>
           <div className={s.identityTop}><span className={s.eyebrow}>LONDO / ЛИЧНОЕ ПРОСТРАНСТВО</span>{owner && <Link className={s.editButton} href="/profile/customize">Настроить профиль ↗</Link>}</div>
-          <div className={s.identityRow}><div><h2 className={s.displayName} style={profileNameStyle(settings.accentColor)}>{profile.displayName}</h2><div className={s.handles}>{profile.username && <span>@{profile.username}</span>}{profile.gameNickname && <span>{profile.gameNickname}</span>}{profile.staticId && <span>Static #{profile.staticId}</span>}{profile.birthday && <span>День рождения: {profile.birthday}</span>}</div></div><ProfileBadges badges={settings.selectedBadges} /></div>
+          <div className={s.identityRow}><div><h2 className={s.displayName} style={profileNameStyle(settings.accentColor)}>{profile.displayName}</h2><div className={s.handles}>{profile.username && <span>@{profile.username}</span>}{profile.gameNickname && <span>{profile.gameNickname}</span>}{profile.staticId && <span>Static #{profile.staticId}</span>}{settings.showBirthday && profile.birthday && <span>День рождения: {profile.birthday}</span>}</div></div><ProfileBadges badges={settings.selectedBadges} /></div>
           {settings.customStatus && <p className={s.status}><span aria-hidden="true">“</span>{settings.customStatus}<small>Личный статус</small></p>}
         </div>
 

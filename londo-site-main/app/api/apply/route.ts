@@ -5,10 +5,11 @@ import { loadApplicationRoles, membership, submitOnSite, revokeConsent, checkVie
 import { startCheckConsent } from "@/lib/discord-checks/oauth";
 
 import { ConsentConfigurationError } from "@/lib/discord-checks/oauth-config";
+import { sameSiteOrigin } from "@/lib/http/origin";
 
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});
 export async function POST(request:NextRequest){
- if(request.headers.get("sec-fetch-site")==="cross-site"||!request.headers.get("origin")||new URL(request.headers.get("origin")!).origin!==request.nextUrl.origin)return json({error:"Запрос отклонён."},403);
+ if(!sameSiteOrigin(request)||request.headers.get("sec-fetch-site")==="cross-site")return json({error:"Запрос отклонён."},403);
  const user=await getCurrentUser();if(!user)return json({error:"Необходима авторизация."},401);
  try{
   const body=await request.json();
