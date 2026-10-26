@@ -37,12 +37,6 @@ const env = {
 };
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const prisma = process.platform === "win32" ? "npx.cmd" : "npx";
-const migrate = spawnSync(prisma, ["prisma", "migrate", "deploy", "--schema=londo-site-main/prisma/schema.prisma"], { cwd: root, env, stdio: "inherit" });
-if (migrate.status !== 0) {
-  console.error(`[londo] Database migrations failed with code ${migrate.status ?? 1}.`);
-  process.exit(migrate.status ?? 1);
-}
 const seed = spawnSync(npm, ["run", "db:seed"], { cwd: root, env, stdio: "inherit" });
 if (seed.status !== 0) {
   console.error(`[londo] Database initialization failed with code ${seed.status ?? 1}.`);
