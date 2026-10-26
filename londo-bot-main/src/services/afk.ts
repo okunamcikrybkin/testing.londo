@@ -3,7 +3,7 @@ import type { Family,FamilyRoleIds } from "../types/family.js";
 import type { SiteLogConfig } from "../config/siteLogs.js";
 import { getMemberFamilies } from "./members.js";
 import { logWarning } from "../utils/logger.js";
-export function afkRoleId(family:Family){const value=(process.env[family+"_AFK_ROLE_ID"]||process.env.FAMILY_AFK_ROLE_ID||"1545123264655794259").trim();if(!/^\d{17,20}$/.test(value))throw Error("AFK_ROLE_NOT_CONFIGURED");return value;}
+export function afkRoleId(family:Family){const value=(process.env[family+"_AFK_ROLE_ID"]||process.env.FAMILY_AFK_ROLE_ID||"1545123264655794258").trim();if(!/^\d{17,20}$/.test(value))throw Error("AFK_ROLE_NOT_CONFIGURED");return value;}
 export function afkPanel() {
   const container = new ContainerBuilder().setAccentColor(0x2dd4bf)
     .addTextDisplayComponents(new TextDisplayBuilder().setContent("# Отпуск\n> Здесь можно оформить отпуск с указанием причины и даты окончания."))
