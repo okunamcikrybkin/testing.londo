@@ -7,10 +7,9 @@
 **/*.tsbuildinfo
 
 # Local configuration and secrets
-**/.env
-**/.env.local
+**/.env*
 **/.testingenv
-!.env.example
+!/.env.example
 !**/.env.example
 
 # Logs and private keys
