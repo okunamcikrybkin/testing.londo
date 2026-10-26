@@ -16,7 +16,7 @@ const BOTH_FAMILIES = ["MEMPHIS"] as const;
  * Discord role position and unconfigured roles (including Legend) are ignored.
  */
 export const FAMILY_RANKS: readonly FamilyRankDefinition[] = [
-  { key: "OWNER", label: "Owner", priority: 12, roleId: "1545123264668369040", scopes: BOTH_FAMILIES },
+  { key: "OWNER", label: "Owner", priority: 12, roleId: "1545123264668369039", scopes: BOTH_FAMILIES },
   { key: "MEMPHIS_LEADER", label: "Leader (MEM)", priority: 11, roleId: "1545453391537242232", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_DEP_OWNER", label: "Dep. Owner (MEM)", priority: 10, roleId: "1545123264655794264", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_HIGH_STAFF", label: "High Staff (MEM)", priority: 9, roleId: "1545123264643473528", scopes: ["MEMPHIS"] },

@@ -9,7 +9,7 @@ import { resolveDiscordAccess } from "./resolver";
 import { parseAccessObservation } from "./protocol";
 const id = (key: string) => FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
 const staffMapping = [
-  ["OWNER", "1545123264668369040", "OWNER"],
+  ["OWNER", "1545123264668369039", "OWNER"],
   ["MEMPHIS_LEADER", "1545453391537242232", "HIGH_STAFF"],
   ["PHOENIX_LEADER", "1545123264655794265", "HIGH_STAFF"],
   ["MEMPHIS_HIGH_STAFF", "1545123264643473528", "RECRUIT"],

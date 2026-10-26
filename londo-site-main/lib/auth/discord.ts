@@ -318,7 +318,7 @@ export async function handleDiscordSignOutRequest(
     });
   }
 
-  const response = NextResponse.redirect(new URL("/", request.nextUrl.origin));
+  const response = NextResponse.redirect(new URL("/", getConfiguredAppOrigin(request)));
   response.cookies.set(SESSION_COOKIE, "", { ...getSessionCookieOptions(), maxAge: 0 });
   return response;
 }
