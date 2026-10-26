@@ -98,8 +98,10 @@ export function getSessionCookieOptions() {
 }
 
 function redirectToAuthError(request: NextRequest, reason: string): NextResponse {
+  let origin = request.nextUrl.origin;
+  try { origin = getConfiguredAppOrigin(request); } catch { /* keep request origin for a configuration error */ }
   const response = NextResponse.redirect(
-    new URL(`/auth/error?reason=${encodeURIComponent(reason)}`, request.nextUrl.origin),
+    new URL(`/auth/error?reason=${encodeURIComponent(reason)}`, origin),
   );
   response.cookies.set(OAUTH_STATE_COOKIE, "", { ...getCookieOptions(0), maxAge: 0 });
   return response;
@@ -224,9 +226,10 @@ export async function handleDiscordCallbackRequest(
   }
 
   try {
+    const appOrigin = getConfiguredAppOrigin(request);
     const callbackUrl = new URL(
       "/api/auth/discord/callback",
-      getConfiguredAppOrigin(request),
+      appOrigin,
     ).toString();
     const accessToken = await exchangeDiscordCode(code, callbackUrl);
     const discordProfile = await requestDiscordProfile(accessToken);
@@ -253,7 +256,7 @@ export async function handleDiscordCallbackRequest(
 
     if (user.status === "SUSPENDED") {
       const response = NextResponse.redirect(
-        new URL("/account-suspended", request.nextUrl.origin),
+        new URL("/account-suspended", appOrigin),
       );
       response.cookies.set(OAUTH_STATE_COOKIE, "", { ...getCookieOptions(0), maxAge: 0 });
       return response;
@@ -261,7 +264,7 @@ export async function handleDiscordCallbackRequest(
 
     if (user.status === "BANNED") {
       const response = NextResponse.redirect(
-        new URL("/account-banned", request.nextUrl.origin),
+        new URL("/account-banned", appOrigin),
       );
       response.cookies.set(OAUTH_STATE_COOKIE, "", { ...getCookieOptions(0), maxAge: 0 });
       return response;
@@ -294,7 +297,7 @@ export async function handleDiscordCallbackRequest(
     const destination = current.birthdayMonth === null || current.birthdayDay === null || current.birthdayYear === null
       ? `/profile/birthday?next=${encodeURIComponent(postLoginDestination)}`
       : postLoginDestination;
-    const response = NextResponse.redirect(new URL(destination, request.nextUrl.origin));
+    const response = NextResponse.redirect(new URL(destination, appOrigin));
     response.cookies.set(SESSION_COOKIE, sessionToken, getSessionCookieOptions());
     response.cookies.set("londo_login_next", "", getCookieOptions(0));
     response.cookies.set(OAUTH_STATE_COOKIE, "", { ...getCookieOptions(0), maxAge: 0 });
