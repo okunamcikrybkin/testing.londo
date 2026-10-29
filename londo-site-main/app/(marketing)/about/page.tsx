@@ -73,7 +73,7 @@ export default async function AboutPage() {
           <div className={s.joinSteps}>
             <article><span>01</span><h3>Выбери сервер</h3><p>Присоединяйся к семье MEMPHIS и играй вместе со своей командой.</p></article>
             <article><span>02</span><h3>Расскажи о себе</h3><p>Заполни анкету и укажи свой игровой никнейм и статик.</p></article>
-            <article><span>03</span><h3>Познакомься с семьёй</h3><p>Рекрутер свяжется с тобой и пригласит на короткий обзвон.</p></article>
+            <article><span>03</span><h3>Познакомься с семьей</h3><p>Рекрутер свяжется с тобой и пригласит на короткий обзвон.</p></article>
           </div>
         </section>
 
