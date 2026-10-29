@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 export function ClaimApplicationLink({ id, family, href, claimed, owned }: { id: string; family: "memphis" | "phoenix"; href: string; claimed: boolean; owned: boolean }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export function ClaimApplicationLink({ id, family, href, claimed, owned }: { id:
 
   return <>
     <button type="button" className="londo-ui-button londo-ui-button-primary shrink-0" onClick={() => setOpen(true)}>Открыть заявку</button>
-    {open ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="claim-application-title">
+    {open ? createPortal(<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="claim-application-title">
       <div className="londo-ui-surface londo-ui-surface-raised w-full max-w-md p-6 sm:p-7">
         <p className="londo-ui-eyebrow">РАБОТА С ЗАЯВКОЙ</p>
         <h2 id="claim-application-title" className="londo-ui-title mt-2 text-2xl">Взять заявку на себя?</h2>
@@ -40,6 +41,6 @@ export function ClaimApplicationLink({ id, family, href, claimed, owned }: { id:
           <button type="button" className="londo-ui-button londo-ui-button-primary" onClick={() => void claim()} disabled={busy}>{busy ? "Закрепление..." : "Да, взять заявку"}</button>
         </div>
       </div>
-    </div> : null}
+    </div>, document.body) : null}
   </>;
 }
