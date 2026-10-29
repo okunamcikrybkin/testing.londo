@@ -12,12 +12,12 @@ const rank = (key: string) => {
   return result.roleId;
 };
 
-function member(roleIds: string[], id = "926534588023590922"): GuildMember {
+function member(roleIds: string[], id = "926534588023590922", roleNames: Record<string, string> = {}): GuildMember {
   return {
     id,
     displayName: "Vaflya",
     displayAvatarURL: () => "https://cdn.discordapp.com/embed/avatars/0.png",
-    roles: { cache: new Map(roleIds.map((roleId) => [roleId, true])) },
+    roles: { cache: new Map(roleIds.map((roleId) => [roleId, roleNames[roleId] ? { name: roleNames[roleId] } : true])) },
     user: { username: "vaflya2101" },
   } as unknown as GuildMember;
 }
@@ -48,4 +48,11 @@ test("dual membership produces both independent ranks and keeps rankless members
 
 test("unconfigured Legend-style roles never resolve a rank", () => {
   assert.equal(resolveFamilyRank(member(["999999999999999999"]), "MEMPHIS"), null);
+});
+
+test("known rank names resolve when Discord role IDs differ from the legacy mapping", () => {
+  const ownerId = "111111111111111111", deputyId = "222222222222222222";
+  assert.equal(resolveFamilyRank(member([ownerId], "owner", { [ownerId]: "Owner" }), "MEMPHIS")?.key, "OWNER");
+  assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "MEMPHIS")?.key, "MEMPHIS_DEP_OWNER");
+  assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "PHOENIX"), null);
 });

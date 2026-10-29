@@ -41,7 +41,7 @@ export function selectRoster(rows: readonly RosterEntry[], query: string, sort: 
       if (emptyA !== emptyB) return emptyA ? 1 : -1;
       if (!emptyA && !emptyB) result = compareInteger(a.staticId!, b.staticId!);
     } else if (sort.key === "rank") {
-      const x = rankPriority.get(a.rankRoleId ?? "") ?? 0, y = rankPriority.get(b.rankRoleId ?? "") ?? 0;
+      const x = a.rankPriority ?? rankPriority.get(a.rankRoleId ?? "") ?? 0, y = b.rankPriority ?? rankPriority.get(b.rankRoleId ?? "") ?? 0;
       if ((x === 0) !== (y === 0)) return x === 0 ? 1 : -1;
       result = x - y;
     } else if (sort.key === "name") result = names.compare(name(a), name(b));

@@ -40,6 +40,12 @@ test("ties resolve by nickname then exact Discord ID regardless of polling order
   for(const direction of ["asc","desc"] as const) assert.deepEqual(selectRoster(rows,"",{key:"coins",direction}).map(r=>r.discordUserId),["4","9007199254740992","9007199254740993"]);
   assert.deepEqual(selectRoster(rows,""),selectRoster([...rows].reverse(),""));
 });
+test("rank sorting uses synchronized priority for roles outside the legacy ID catalog",()=>{
+  const owner=row("11","Owner",{rankRoleId:"111111111111111111",rankDisplayName:"Owner",rankPriority:12});
+  const deputy=row("12","Deputy",{rankRoleId:"222222222222222222",rankDisplayName:"Dep. Owner",rankPriority:10});
+  const rankless=row("13","No rank");
+  assert.deepEqual(selectRoster([deputy,rankless,owner],"",{key:"rank",direction:"desc"}),[owner,deputy,rankless]);
+});
 test("search and selected sort remain applicable to refreshed data without mutating roster",()=>{
   const rows=[b,a], copy=[...rows], sort={key:"coins",direction:"desc"} as const;
   assert.equal(selectRoster(rows,"lon",sort)[0],a);

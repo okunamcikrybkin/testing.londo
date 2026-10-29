@@ -5,9 +5,16 @@ import type { Family } from "../types/family.js";
 
 export type ResolvedFamilyRank = Pick<FamilyRankDefinition, "key" | "label" | "priority" | "roleId">;
 
+function normalizedRoleName(value: string): string {
+  return value.toLocaleLowerCase("en-US").replace(/[^a-z0-9]/g, "");
+}
+
 /** Resolves a member's highest configured rank in one family scope. */
 export function resolveFamilyRank(member: GuildMember, family: Family): ResolvedFamilyRank | null {
-  const matching = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family) && member.roles.cache.has(rank.roleId));
+  const matching = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family) && (
+    member.roles.cache.has(rank.roleId)
+    || [...member.roles.cache.values()].some((role) => typeof role?.name === "string" && rank.roleNames?.includes(normalizedRoleName(role.name)))
+  ));
   const rank = matching.sort((left, right) => right.priority - left.priority)[0];
 
   if (!rank || rank.priority < 7) { const promotion = resolvePromotionRank(id => member.roles.cache.has(id), family); if (promotion) return promotion; }
