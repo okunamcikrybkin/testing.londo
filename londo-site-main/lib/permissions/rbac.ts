@@ -1,5 +1,6 @@
 import "server-only";
 import {canUseFeature,meetsAccess} from "./features";
+import {parseFullAccessDiscordIds} from "./full-access";
 
 export const USER_ROLES = ["USER", "RECRUIT", "HIGH_STAFF", "OWNER"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
@@ -66,12 +67,7 @@ const MANAGEABLE_STAFF_ROLES: Record<EffectiveAccess, readonly UserRole[]> = {
 };
 
 function configuredFullAccessDiscordIds(): Set<string> {
-  return new Set(
-    (process.env.FULL_ACCESS_DISCORD_IDS ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
+  return parseFullAccessDiscordIds(process.env.FULL_ACCESS_DISCORD_IDS);
 }
 
 /** Computes the server-side access level from the authenticated Discord identity. */
