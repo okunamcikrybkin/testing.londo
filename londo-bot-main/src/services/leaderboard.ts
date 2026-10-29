@@ -1,4 +1,6 @@
 import { EmbedBuilder, PermissionFlagsBits, type ChatInputCommandInteraction, type Guild, type Message, type TextBasedChannel } from "discord.js";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import type { SiteLogConfig } from "../config/siteLogs.js";
 import type { LeaderboardConfig } from "../types/family.js";
 import { logInfo, logWarning } from "../utils/logger.js";
@@ -7,6 +9,7 @@ const MARKER = "londo-leaderboard-v1";
 const SCHEDULE_MS = 300_000;
 const MIN_EDIT_MS = 60_000;
 const LIMIT = 10;
+const MESSAGE_STATE_FILE = resolve("data/leaderboard-panel.json");
 
 export type LeaderboardEntry = { balance: string; discordUserId: string; totalVoiceSeconds: string };
 export type LeaderboardData = { coins: LeaderboardEntry[]; generatedAt: string; voice: LeaderboardEntry[] };
@@ -36,13 +39,13 @@ export function createLeaderboardEmbed(data: LeaderboardData, now = new Date()):
   const voice = data.voice.slice(0, LIMIT);
   return new EmbedBuilder()
     .setColor(0xd4af37)
-    .setTitle("Лидерборд Londo")
-    .setDescription("Топ участников семьи по количеству коинов и времени в голосовых каналах.")
+    .setTitle("🏆 Рейтинг участников LONDO")
+    .setDescription("В каждой таблице — топ-10 участников: по общему балансу коинов и по времени в голосовых каналах. Рейтинг обновляется автоматически.")
     .addFields(
-      { name: "Топ-10 по коинам", value: coins.length ? coins.map((entry, index) => line(index, entry, "coins")).join("\n") : "Нет данных." },
-      { name: "Топ-10 по голосовой активности", value: voice.length ? voice.map((entry, index) => line(index, entry, "voice")).join("\n") : "Нет данных." },
+      { name: "🪙 Топ-10 по балансу коинов", value: coins.length ? coins.map((entry, index) => line(index, entry, "coins")).join("\n") : "Пока нет данных." },
+      { name: "🎙️ Топ-10 по времени в голосовых каналах", value: voice.length ? voice.map((entry, index) => line(index, entry, "voice")).join("\n") : "Пока нет данных." },
     )
-    .setFooter({ text: MARKER })
+    .setFooter({ text: "Обновляется автоматически · LONDO" })
     .setTimestamp(now);
 }
 
@@ -59,9 +62,37 @@ export async function fetchLeaderboard(config: SiteLogConfig, fetchImplementatio
   }
 }
 
-async function findExistingMessage(channel: TextBasedChannel, botId: string, configuredMessageId: string | null): Promise<Message | null> {
-  if (configuredMessageId) {
-    try { return await channel.messages.fetch(configuredMessageId); } catch { logWarning("[LEADERBOARD] Configured message was not found; creating a replacement."); }
+function isMessageState(value: unknown): value is Record<string, string> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.values(value).every((item) => typeof item === "string"));
+}
+
+async function readMessageState(filePath: string): Promise<Record<string, string>> {
+  try {
+    const state: unknown = JSON.parse(await readFile(filePath, "utf8"));
+    if (!isMessageState(state)) throw new Error("Invalid leaderboard message state.");
+    return state;
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return {};
+    throw error;
+  }
+}
+
+async function rememberMessageId(filePath: string, key: string, messageId: string): Promise<void> {
+  const state = await readMessageState(filePath);
+  if (state[key] === messageId) return;
+  state[key] = messageId;
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(`${filePath}.tmp`, JSON.stringify(state));
+  await rename(`${filePath}.tmp`, filePath);
+}
+
+async function findExistingMessage(
+  channel: TextBasedChannel,
+  botId: string,
+  ...messageIds: Array<string | null>
+): Promise<Message | null> {
+  for (const messageId of new Set(messageIds.filter((id): id is string => Boolean(id)))) {
+    try { return await channel.messages.fetch(messageId); } catch { logWarning("[LEADERBOARD] Saved message was not found; checking for an older panel."); }
   }
   const recent = await channel.messages.fetch({ limit: 100 });
   return recent.find((message) => message.author.id === botId && message.embeds.some((embed) => embed.footer?.text === MARKER)) ?? null;
@@ -71,7 +102,14 @@ export class LeaderboardManager {
   private lastEditAt = 0;
   private scheduled: NodeJS.Timeout | null = null;
 
-  constructor(private readonly guild: Guild, private readonly config: LeaderboardConfig, private readonly site: SiteLogConfig, private readonly fetchImplementation: FetchImplementation = globalThis.fetch, private readonly scheduleMs = SCHEDULE_MS) {}
+  constructor(
+    private readonly guild: Guild,
+    private readonly config: LeaderboardConfig,
+    private readonly site: SiteLogConfig,
+    private readonly fetchImplementation: FetchImplementation = globalThis.fetch,
+    private readonly scheduleMs = SCHEDULE_MS,
+    private readonly messageStateFile = MESSAGE_STATE_FILE,
+  ) {}
 
   async refresh(force = false): Promise<boolean> {
     if (!this.config.channelId) return false;
@@ -81,14 +119,24 @@ export class LeaderboardManager {
     try {
       const channel = await this.guild.channels.fetch(this.config.channelId);
       if (!channel?.isTextBased() || !channel.isSendable()) { logWarning("[LEADERBOARD] Refresh failed: channel is unavailable or not sendable."); return false; }
-      const existing = await findExistingMessage(channel, this.guild.client.user?.id ?? "", this.config.messageId);
+      const stateKey = `${this.guild.id}:${channel.id}`;
+      const savedMessageId = (await readMessageState(this.messageStateFile))[stateKey] ?? null;
+      const existing = await findExistingMessage(channel, this.guild.client.user?.id ?? "", this.config.messageId, savedMessageId);
       const embed = createLeaderboardEmbed(data);
-      if (existing) await existing.edit({ embeds: [embed] });
-      else { const created = await channel.send({ embeds: [embed] }); logInfo(`[LEADERBOARD] Created message: ${created.id}`); }
+      let messageId: string;
+      if (existing) {
+        await existing.edit({ embeds: [embed] });
+        messageId = existing.id;
+      } else {
+        const created = await channel.send({ embeds: [embed] });
+        messageId = created.id;
+        logInfo(`[LEADERBOARD] Created message: ${messageId}`);
+      }
+      await rememberMessageId(this.messageStateFile, stateKey, messageId);
       this.lastEditAt = Date.now();
       return true;
-    } catch {
-      logWarning("[LEADERBOARD] Refresh failed: Discord message edit failed.");
+    } catch (error) {
+      logWarning(`[LEADERBOARD] Refresh failed: ${error instanceof Error ? error.name : "unknown error"}.`);
       return false;
     }
   }

@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, MessageFlags, PermissionFlagsBits, TextDisplayBuilder, type ApplicationCommandDataResolvable, type ChatInputCommandInteraction, type Guild, type Interaction } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder, type ApplicationCommandDataResolvable, type ChatInputCommandInteraction, type Guild, type Interaction } from "discord.js";
 import { readFile, mkdir, writeFile, rename } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { logWarning } from "../utils/logger.js";
@@ -11,9 +11,13 @@ export function applicationSiteUrl(value=process.env.PUBLIC_SITE_URL):string|nul
 }
 export function createApplicationPanel(value=process.env.PUBLIC_SITE_URL){
  const url=applicationSiteUrl(value);if(!url)throw Error("PUBLIC_SITE_URL не настроен: публикация виджета заявок пропущена.");
- const container=new ContainerBuilder().setAccentColor(0xd4af37).addTextDisplayComponents(new TextDisplayBuilder().setContent("# Вступление в семью LONDO\nХочешь стать частью LONDO?\n\nТеперь заявки на вступление принимаются через наш официальный сайт.\n\nДля подачи заявки необходимо:\n• Авторизоваться через Discord.\n• Находиться на Discord-сервере LONDO.\n• Выбрать семью MEMPHIS или PHOENIX.\n• Заполнить анкету.\n\nПосле отправки заявка поступит на рассмотрение рекрутерам."))
- .addActionRowComponents(new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Подать заявку на сайте ↗").setURL(url)))
- .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${MARKER}`));
+ const container=new ContainerBuilder().setAccentColor(0xd4af37)
+ .addTextDisplayComponents(new TextDisplayBuilder().setContent("# ✨ Стань частью семьи LONDO\nИщешь команду, с которой можно расти и добиваться большего? Мы будем рады познакомиться."))
+ .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+ .addTextDisplayComponents(new TextDisplayBuilder().setContent("## Как вступить\n**1. Заполни анкету** — нажми кнопку ниже и войди через Discord.\n**2. Расскажи о себе** — выбери семью и ответь на вопросы анкеты.\n**3. Дождись ответа** — рекрутер рассмотрит заявку и напишет тебе, если понадобится собеседование.\n**4. Присоединяйся к LONDO** — после одобрения поможем освоиться в семье."))
+ .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+ .addTextDisplayComponents(new TextDisplayBuilder().setContent("Перед отправкой проверь, что ответы заполнены честно и внимательно. Если возникнут вопросы — напиши рекрутерам на сервере."))
+ .addActionRowComponents(new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Заполнить анкету").setURL(url)));
  return {flags:MessageFlags.IsComponentsV2 as const,components:[container],allowedMentions:{parse:[] as []}};
 }
 function missing(error:unknown){return !!error&&typeof error==="object"&&"code" in error&&error.code===10008;}

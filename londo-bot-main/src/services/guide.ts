@@ -113,7 +113,7 @@ export function createGuidePanel(config: GuideConfig, assets: GuideAssets = avai
   addUsefulLink(container, "👋 Ждём тебя в нашей дружной фаме **LONDO**", "Подать заявку", config.urls.application);
   addUsefulLink(container, "〽️ Ссылка на регистрацию **/PROMO LONDO**", "Регистрация", config.urls.registration);
   addUsefulLink(container, "📘 Наша памятка по законодательной базе", "Памятка", config.urls.law);
-  addUsefulLink(container, `✈️ Telegram канал овнера — **${config.ownerName ?? "LONDO"}.**`, "Telegram", config.urls.telegram);
+  addUsefulLink(container, "✈️ Telegram-канал семьи LONDO", "Открыть Telegram", "https://t.me/londofam");
 
   if (assets.promo) {
     container.addMediaGalleryComponents(

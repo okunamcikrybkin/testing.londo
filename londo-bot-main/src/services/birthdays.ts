@@ -12,6 +12,7 @@ const REQUEST_TIMEOUT_MS = 8_000;
 
 type BirthdayUser = { discordId: string; birthdayLastCelebratedYear: number | null };
 type ActiveRole = { discordId: string; grantedAt: string };
+type BirthdayRoleGrant = { discordId: string; birthdayRoleGrantedAt: string };
 type BirthdaySnapshot = { users: BirthdayUser[]; activeRoles: ActiveRole[] };
 
 function dateInZone(date: Date): { month: number; day: number; year: number } {
@@ -33,7 +34,7 @@ async function loadBirthdays(config: SiteLogConfig, date: Date): Promise<Birthda
   const users = payload.users.filter((item): item is BirthdayUser => Boolean(item && typeof item === "object"
     && "discordId" in item && typeof item.discordId === "string" && /^\d{16,22}$/.test(item.discordId)
     && "birthdayLastCelebratedYear" in item && (item.birthdayLastCelebratedYear === null || typeof item.birthdayLastCelebratedYear === "number")));
-  const activeRoles = payload.activeRoleGrants.filter((item): item is ActiveRole => Boolean(item && typeof item === "object"
+  const activeRoles = payload.activeRoleGrants.filter((item): item is BirthdayRoleGrant => Boolean(item && typeof item === "object"
     && "discordId" in item && typeof item.discordId === "string" && /^\d{16,22}$/.test(item.discordId)
     && "birthdayRoleGrantedAt" in item && typeof item.birthdayRoleGrantedAt === "string" && !Number.isNaN(Date.parse(item.birthdayRoleGrantedAt)))
   ).map((item) => ({ discordId: item.discordId, grantedAt: item.birthdayRoleGrantedAt }));

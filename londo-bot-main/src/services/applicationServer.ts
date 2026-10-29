@@ -195,18 +195,25 @@ export function applicationCallOverwrites(guildId: string, botId: string, applic
 async function sendApplicantDm(guild: Guild, app: Application, type: "CALL" | "ACCEPTED" | "REJECTED"): Promise<boolean> {
   try {
     const user = await guild.client.users.fetch(app.discordUserId);
-    const reviewer = app.reviewer?.discordId ? `<@${app.reviewer.discordId}>` : app.reviewer?.displayName ?? "рекрутом";
-    const embed = new EmbedBuilder().setColor(type === "REJECTED" ? 0xef4444 : type === "ACCEPTED" ? 0x22c55e : app.family === "MEMPHIS" ? 0x2dd4bf : 0xf97316).setFooter({ text: `Заявка ${app.id}` });
-    if (type === "CALL") {
-      embed.setTitle("Вас пригласили на обзвон").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\nРекрут ${reviewer} пригласил вас на обзвон по заявке в семью **${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}**. Перейдите в каналы ниже, чтобы присоединиться к собеседованию.`).addFields({ name: "Текстовый канал", value: app.discordTextChannelId ? `<#${app.discordTextChannelId}>` : "Недоступен", inline: true }, { name: "Голосовой канал", value: app.discordVoiceChannelId ? `<#${app.discordVoiceChannelId}>` : "Недоступен", inline: true });
-    } else if (type === "ACCEPTED") {
-      embed.setTitle("Заявка одобрена").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\nВаша заявка в семью **${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}** одобрена рекрутом ${reviewer}. Добро пожаловать в семью.`);
-    } else {
-      embed.setTitle("Заявка отклонена").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\nВаша заявка в семью **${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}** отклонена рекрутом ${reviewer}.`).addFields({ name: "Причина", value: app.rejectionReason?.trim() || "Причина не указана" });
-    }
+    const embed = createApplicantNotification(app, type);
     await user.send({ embeds: [embed], allowedMentions: { users: app.reviewer?.discordId ? [app.reviewer.discordId] : [] } });
     return true;
   } catch { return false; }
+}
+
+export function createApplicantNotification(app: Application, type: "CALL" | "ACCEPTED" | "REJECTED"): EmbedBuilder {
+    const familyName = app.family === "MEMPHIS" ? "Memphis" : "Phoenix";
+    const reviewer = app.reviewer?.discordId ? `<@${app.reviewer.discordId}>` : app.reviewer?.displayName ?? "рекрутер";
+    const embed = new EmbedBuilder().setColor(type === "REJECTED" ? 0xef4444 : type === "ACCEPTED" ? 0x22c55e : app.family === "MEMPHIS" ? 0x2dd4bf : 0xf97316);
+    if (type !== "REJECTED") embed.setFooter({ text: `Заявка ${app.id}` });
+    if (type === "CALL") {
+      embed.setTitle("Вас пригласили на собеседование").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\n${reviewer} пригласил вас на собеседование в семью **${familyName}**. Чтобы присоединиться, откройте каналы ниже.`).addFields({ name: "Текстовый канал", value: app.discordTextChannelId ? `<#${app.discordTextChannelId}>` : "Недоступен", inline: true }, { name: "Голосовой канал", value: app.discordVoiceChannelId ? `<#${app.discordVoiceChannelId}>` : "Недоступен", inline: true });
+    } else if (type === "ACCEPTED") {
+      embed.setTitle("Заявка одобрена").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\nВаша заявка в семью **${familyName}** одобрена рекрутом ${reviewer}. Добро пожаловать в семью.`);
+    } else {
+      embed.setTitle("Спасибо за вашу анкету").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\nМы внимательно рассмотрели вашу анкету в семью **${familyName}**. К сожалению, сейчас мы не готовы принять вас в семью.\n\n**Комментарий рекрутера**\n${app.rejectionReason?.trim() || "Рекрутер не оставил комментарий."}\n\nСпасибо за интерес к LONDO.`);
+    }
+    return embed;
 }
 
 async function accept(guild: Guild, config: ApplicationConfig, roles: FamilyRoleIds, app: Application): Promise<void> {
@@ -291,7 +298,7 @@ async function reject(guild: Guild, config: ApplicationConfig, app: Application)
   const reason = app.rejectionReason?.trim();
   if (!isValidRejectionReason(reason)) throw new Error("INVALID_REJECTION_REASON");
   if (app.discordTextChannelId) {
-    try { const channel = await guild.channels.fetch(app.discordTextChannelId); if (channel?.isTextBased() && channel.isSendable() && isExpectedTextChannel(channel, app.id)) await channel.send({ embeds: [new EmbedBuilder().setColor(0xef4444).setTitle("Заявка отклонена").setDescription(`Причина: ${reason}`)] }); } catch (error) { if (!channelMissing(error)) throw new CleanupError(permissionError(error) ? "MISSING_PERMISSIONS" : "CHANNEL_FETCH_FAILED"); }
+    try { const channel = await guild.channels.fetch(app.discordTextChannelId); if (channel?.isTextBased() && channel.isSendable() && isExpectedTextChannel(channel, app.id)) await channel.send({ embeds: [new EmbedBuilder().setColor(0xef4444).setTitle("Решение по вашей анкете").setDescription(`Мы рассмотрели вашу анкету в семью ${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}. К сожалению, сейчас мы не готовы принять вас.\n\n**Комментарий рекрутера**\n${reason}\n\nСпасибо за интерес к LONDO.`)] }); } catch (error) { if (!channelMissing(error)) throw new CleanupError(permissionError(error) ? "MISSING_PERMISSIONS" : "CHANNEL_FETCH_FAILED"); }
   }
   const cleanup = await cleanupDiscordApplicationChannels(guild, config, app); logInfo("Application rejected successfully."); return cleanup;
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import { ChannelType, PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
-import { acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
+import { acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, createApplicantNotification, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
 import type { ApplicationConfig } from "../types/family.js";
 
 const roles = { fam: "1", memphis: "2", phoenix: "3" };
@@ -111,6 +111,21 @@ test("operation-specific validation requires a rejection reason only for reject"
   assert.equal(validateApplicationPayload({ ...application, rejectionReason: "   " }, "app-1", "reject").ok, false);
   assert.equal(validateApplicationPayload({ ...application, rejectionReason: "А" }, "app-1", "reject").ok, true);
   assert.equal(validateApplicationPayload({ ...application, rejectionReason: "А".repeat(1001) }, "app-1", "reject").ok, false);
+});
+
+test("rejection notice is human-readable and omits the website application ID", () => {
+  const notification = createApplicantNotification({
+    ...application,
+    id: "cmvtbbow60018qekgxy6ag87w",
+    discordDisplayName: "Player",
+    rejectionReason: "Пожалуйста, подробнее расскажите о персонаже.",
+  }, "REJECTED").toJSON();
+  const text = JSON.stringify(notification);
+  assert.match(text, /Мы внимательно рассмотрели вашу анкету/);
+  assert.match(text, /Пожалуйста, подробнее расскажите о персонаже/);
+  assert.doesNotMatch(text, /cmvtbbow60018qekgxy6ag87w/);
+  assert.doesNotMatch(text, /Заявка cmvt/);
+  assert.equal(notification.footer, undefined);
 });
 
 test("acceptance applies the requested Discord nickname along with roles", async () => {

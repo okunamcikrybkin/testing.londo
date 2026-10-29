@@ -23,7 +23,7 @@ import { resolveNicknameActor } from "./services/nicknameAudit.js";
 import { sendVoiceOperation } from "./services/voiceClient.js";
 import { VoiceTracker } from "./services/voiceTracker.js";
 import { LeaderboardManager, setupLeaderboard } from "./services/leaderboard.js";
-import { checkWelcomeChannel, sendWelcome, testWelcome } from "./services/welcome.js";
+import { checkWelcomeChannel, sendLeave, sendWelcome, testWelcome } from "./services/welcome.js";
 import { publishGuide } from "./services/guide.js";
 import { handleTwitchCommand, TwitchStreamWatcher, twitchCommandDefinitions } from "./services/twitchStreams.js";
 import { AfkManager } from "./services/afk.js";
@@ -175,6 +175,7 @@ async function start(): Promise<void> {
 
   client.on(Events.GuildMemberRemove, member => {
     if (member.guild.id !== config.guildId) return;
+    void sendLeave(member, welcomeConfig);
     if (siteLogConfig) {
       const occurredAt = new Date().toISOString();
       void sendAccessObservations(siteLogConfig, [{ discordId: member.id, roleIds: [], observedAt: occurredAt, trigger: "ROLE_UPDATE" }]);
@@ -201,7 +202,7 @@ async function start(): Promise<void> {
       sourceEventId: `discord-audit:${entry.id}`,
       serverId: guild.id,
       summary: `${executorName}: действие Discord ${entry.actionType.toLocaleLowerCase("ru-RU")} · ${entry.targetType}${targetName ? ` · ${targetName}` : ""}`,
-      ...(executor ? { actor: { discordId: executor.id, username: executor.username, displayName: executorName } } : {}),
+      ...(executor ? { actor: { discordId: executor.id, username: executor.username ?? executorName, displayName: executorName } } : {}),
       ...(entry.targetId ? { target: { discordId: entry.targetId, username: targetName ?? entry.targetType, displayName: targetName ?? entry.targetType } } : {}),
       metadata: {
         event: "DISCORD_AUDIT_LOG_ENTRY",

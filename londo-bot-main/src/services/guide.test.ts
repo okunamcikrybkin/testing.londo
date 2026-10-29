@@ -45,6 +45,8 @@ test("guide panel is one Components V2 container with sections, accessories, med
   assert.match(JSON.stringify(usefulSections[1]), /Регистрация/);
   assert.match(JSON.stringify(usefulSections[2]), /Памятка/);
   assert.match(JSON.stringify(usefulSections[3]), /Telegram/);
+  assert.match(JSON.stringify(usefulSections[3]), /https:\/\/t\.me\/londofam/);
+  assert.doesNotMatch(JSON.stringify(usefulSections[3]), /SENTICEE/);
   assert.equal(components.filter((component) => component.type === ComponentType.MediaGallery).length, 1);
   assert.match(JSON.stringify(components), /londo-promo\.png/);
   assert.match(JSON.stringify(components), /LONDO BOT/);
@@ -52,7 +54,7 @@ test("guide panel is one Components V2 container with sections, accessories, med
   assert.equal(components.filter((component) => component.type === ComponentType.ActionRow).length, 0);
 });
 
-test("guide omits optional accessories and media without URLs or local assets", () => {
+test("guide keeps the family Telegram link while omitting other optional links and media", () => {
   const panel = createGuidePanel({
     ...config,
     applicationChannelId: null,
@@ -63,7 +65,8 @@ test("guide omits optional accessories and media without URLs or local assets", 
 
   assert.equal(panel.files.length, 0);
   assert.equal(container?.components.filter((component) => component.type === ComponentType.MediaGallery).length, 0);
-  assert.equal(JSON.stringify(container).includes("accessory"), false);
+  assert.match(JSON.stringify(container), /https:\/\/t\.me\/londofam/);
+  assert.doesNotMatch(JSON.stringify(container), /example\.test/);
   assert.match(JSON.stringify(container), /Разделы пока не настроены/);
 });
 
