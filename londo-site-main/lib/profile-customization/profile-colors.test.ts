@@ -36,15 +36,16 @@ test("real ProfileView ignores legacy fields and renders saved colors for owner/
  try{
   esbuild.buildSync({stdin:{contents:`import React from 'react';import{renderToStaticMarkup}from'react-dom/server';import{ProfileView}from'./components/profile/profile-view';export const render=(props)=>renderToStaticMarkup(<ProfileView {...props}/>);`,loader:"tsx",resolveDir:process.cwd()},bundle:true,platform:"node",format:"cjs",jsx:"automatic",outfile:join(dir,"render.cjs"),loader:{".module.css":"local-css"},logLevel:"silent"});
   const {render}=require(join(dir,"render.cjs")) as {render:(props:unknown)=>string};
-  const profile={displayName:"Test",avatarUrl:null,discordId:"private-id",availableBadges:[]};
-  const settings={...defaultSettings(),profileTopColor:"#123456",profileBottomColor:"#654321",bannerPreset:"NONE" as const};
+  const profile={displayName:"Test",gameNickname:"Roleplay Name",staticId:"456",characters:[{name:"Second",staticId:"789",enabled:true,sortOrder:0}],avatarUrl:null,discordId:"private-id",availableBadges:[]};
+  const settings={...defaultSettings(),showStaticId:true,characters:profile.characters,profileTopColor:"#123456",profileBottomColor:"#654321",bannerPreset:"NONE" as const};
   const expected=render({profile,settings});
   for(const patch of [{theme:"RED"},{theme:"GOLD"},{cardStyle:"GLASS"},{cardStyle:"SOLID"},{layout:"COMPACT"},{layout:"SHOWCASE"}])assert.equal(render({profile,settings:{...settings,...patch}}),expected);
   for(const owner of [false,true]){
    const html=render({...profileProjection(profile,settings,owner),owner});
    assert.match(html,/--profile-top-color:#123456/);assert.match(html,/--profile-bottom-color:#654321/);
+   assert.match(html,/Roleplay Name/);assert.match(html,/\| #456/);assert.match(html,/Дополнительные персонажи/);assert.match(html,/Second/);assert.match(html,/Статик #789/);
    assert.match(html,/data-layout="CLASSIC"/);assert.match(html,/data-card="MATTE"/);
-   assert.equal(html.includes("private-id"),owner);
+   assert.ok(!html.includes("private-id"));
   }
   const invalid={...settings,profileTopColor:"url(evil)",profileBottomColor:"#fff;"} as ProfileSettings;
   assert.ok(!render({profile,settings:invalid}).includes("url(evil)"));

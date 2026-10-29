@@ -8,6 +8,7 @@ try {
   await prisma.$executeRawUnsafe('ALTER TABLE "profile_customizations" ADD COLUMN IF NOT EXISTS "customGameNickname" TEXT');
   await prisma.$executeRawUnsafe('ALTER TABLE "profile_customizations" ADD COLUMN IF NOT EXISTS "characters" JSONB NOT NULL DEFAULT \'[]\'::jsonb');
   await prisma.$executeRawUnsafe('ALTER TABLE "profile_customizations" ADD COLUMN IF NOT EXISTS "showBirthday" BOOLEAN NOT NULL DEFAULT true');
+  await prisma.$executeRawUnsafe('ALTER TABLE "profile_customizations" ADD COLUMN IF NOT EXISTS "showCharacters" BOOLEAN NOT NULL DEFAULT true');
   await prisma.$executeRawUnsafe('UPDATE "family_notification_settings" SET "channelId" = \'1545123268233797818\' WHERE "family" = \'MEMPHIS\' AND "channelId" IS NULL');
   await prisma.familyNotificationSettings.upsert({ where: { family: "MEMPHIS" }, create: { family: "MEMPHIS", channelId: "1545123268233797818" }, update: {} });
   await prisma.rouletteSettings.upsert({

@@ -909,6 +909,7 @@ model ProfileCustomization {
   showGameNickname Boolean @default(true)
   showStaticId Boolean @default(false)
   showBirthday Boolean @default(true)
+  showCharacters Boolean @default(true)
   showFamily Boolean @default(true)
   showRank Boolean @default(true)
   showCoins Boolean @default(false)

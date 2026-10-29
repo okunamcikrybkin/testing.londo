@@ -20,6 +20,7 @@ function ProfileRank({rank,profile}:{rank:string;profile:ProfileData}) {
   const label = family ? rank.slice(family.length + 3) : rank;
   return <span className="inline-flex items-center gap-1.5">{family && <FamilyServerIcon family={family} size="inline" />}<RankLabel roleId={profile.rankRoleIds?.[rank]} colors={profile.rankColors}>{label}</RankLabel></span>;
 }
+function ProfileName({profile}:{profile:ProfileData}){return <>{profile.gameNickname||profile.displayName}{profile.staticId&&<span className={s.staticId}> | #{profile.staticId}</span>}</>;}
 
 export function ProfileBanner({ settings, mini = false }: { settings: ProfileSettings; mini?: boolean }) {
   const custom = safeUrl(settings.customBannerUrl, true);
@@ -53,13 +54,13 @@ export function ProfileBadges({ badges }: { badges: string[] }) {
 export function ProfileView({profile, settings, owner=false, discordRoles=[]}: ProfileViewProps) {
  const families=profile.families ?? [];
  const visibleDiscordRoles=discordRoles.filter(role=>role.trim().toLocaleLowerCase("ru-RU")!=="memphis");
- const hasDetails=Boolean(settings.bio || settings.links.length || settings.games.length || settings.characters.length || families.length || profile.ranks?.length || discordRoles.length || profile.coins !== undefined || profile.voiceTime !== undefined || owner);
+ const hasDetails=Boolean(settings.bio || settings.links.length || settings.games.length || profile.characters?.length || families.length || profile.ranks?.length || discordRoles.length || profile.coins !== undefined || profile.voiceTime !== undefined || owner);
  return <div className={s.scope} data-profile-customization="true" style={profileStyle(settings)}>      <article className={s.profile} data-layout="CLASSIC" data-card="MATTE" aria-label="Профиль участника LONDO">
         <ProfileBanner settings={settings} />
         <div className={s.identity} data-ui-profile="identity">
           <div className={s.avatarButton}><ProfileAvatar profile={profile} frame={settings.avatarFrame} frameColor={settings.avatarFrameColor} /></div>
           <div className={s.identityTop}><span className={s.eyebrow}>LONDO / ЛИЧНОЕ ПРОСТРАНСТВО</span>{owner && <Link className={s.editButton} href="/profile/customize">Настроить профиль ↗</Link>}</div>
-          <div className={s.identityRow}><div><h2 className={s.displayName} style={profileNameStyle(settings.accentColor)}>{profile.displayName}</h2><div className={s.handles}>{profile.username && <span>@{profile.username}</span>}{profile.gameNickname && <span>{profile.gameNickname}</span>}{profile.staticId && <span>Static #{profile.staticId}</span>}{settings.showBirthday && profile.birthday && <span>День рождения: {profile.birthday}</span>}</div></div><ProfileBadges badges={settings.selectedBadges} /></div>
+          <div className={s.identityRow}><div><h2 className={s.displayName} style={profileNameStyle(settings.accentColor)}><ProfileName profile={profile}/></h2><div className={s.handles}>{profile.username && <span>@{profile.username}</span>}{settings.showBirthday && profile.birthday && <span>День рождения: {profile.birthday}</span>}</div></div><ProfileBadges badges={settings.selectedBadges} /></div>
           {settings.customStatus && <p className={s.status}><span aria-hidden="true">“</span>{settings.customStatus}<small>Личный статус</small></p>}
         </div>
 
@@ -74,9 +75,9 @@ export function ProfileView({profile, settings, owner=false, discordRoles=[]}: P
               <section className={s.familySection}>
                 <h2 className={s.sectionTitle}>Дополнительные персонажи <span>СТАТИКИ</span></h2>
                 <div className={s.connections}>
-                  {profile.characters.filter(c => c.enabled).sort((a, b) => a.sortOrder - b.sortOrder).map(c => (
+                  {profile.characters.map(c => (
                     <div key={`${c.name}-${c.staticId}`} className="flex items-center justify-between border-t border-white/10 py-3 text-sm">
-                      <span>{c.name}</span><strong className="text-accent-soft">Static #{c.staticId}</strong>
+                      <span>{c.name}</span><strong className="text-accent-soft">Статик #{c.staticId}</strong>
                     </div>
                   ))}
                 </div>
@@ -101,5 +102,5 @@ export function ProfileView({profile, settings, owner=false, discordRoles=[]}: P
 /** Reusable presentation only; callers own popover behavior and authorization. */
 export function ProfileCard({profile, settings, profileHref}: ProfileViewProps & {profileHref: string}) {
  const href=/^\/profile\/[a-zA-Z0-9_-]{1,64}$/.test(profileHref)?profileHref:"/profile";
- return <div className={s.scope} data-profile-customization="true" style={profileStyle(settings)}><article className={s.compact} aria-label="Карточка участника LONDO"><ProfileBanner settings={settings} mini/><div className={s.compactBody}><ProfileAvatar profile={profile} frame={settings.avatarFrame} frameColor={settings.avatarFrameColor}/><h2 style={profileNameStyle(settings.accentColor)}>{profile.displayName}</h2>{profile.username&&<p className={s.subtle}>@{profile.username}</p>}<ProfileBadges badges={settings.selectedBadges}/>{profile.ranks?.map(r=><p className={s.compactRank} key={r}><RankLabel roleId={profile.rankRoleIds?.[r]} colors={profile.rankColors}>{r}</RankLabel></p>)}{!profile.ranks?.length&&profile.families?.map(f=><p key={f}>{f}</p>)}{settings.customStatus&&<p className={s.compactStatus}>{settings.customStatus}</p>}<Link className={s.openProfile} href={href}>Открыть профиль ↗</Link></div></article></div>;
+ return <div className={s.scope} data-profile-customization="true" style={profileStyle(settings)}><article className={s.compact} aria-label="Карточка участника LONDO"><ProfileBanner settings={settings} mini/><div className={s.compactBody}><ProfileAvatar profile={profile} frame={settings.avatarFrame} frameColor={settings.avatarFrameColor}/><h2 style={profileNameStyle(settings.accentColor)}><ProfileName profile={profile}/></h2>{profile.username&&<p className={s.subtle}>@{profile.username}</p>}<ProfileBadges badges={settings.selectedBadges}/>{profile.ranks?.map(r=><p className={s.compactRank} key={r}><RankLabel roleId={profile.rankRoleIds?.[r]} colors={profile.rankColors}>{r}</RankLabel></p>)}{!profile.ranks?.length&&profile.families?.map(f=><p key={f}>{f}</p>)}{settings.customStatus&&<p className={s.compactStatus}>{settings.customStatus}</p>}{profile.characters?.map(c=><p className={s.subtle} key={`${c.name}-${c.staticId}`}>{c.name} · #{c.staticId}</p>)}<Link className={s.openProfile} href={href}>Открыть профиль ↗</Link></div></article></div>;
 }
