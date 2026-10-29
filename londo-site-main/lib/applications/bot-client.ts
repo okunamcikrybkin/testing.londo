@@ -95,6 +95,7 @@ async function callBot(path: string, payload: object): Promise<Record<string, un
         NICKNAME_HIERARCHY: "Бот не может изменить никнейм участника из-за иерархии ролей. Поднимите роль LONDO Bot выше ролей участника.",
         ROLE_NOT_FOUND: "Одна из ролей принятия не найдена в Discord. Статус заявки не изменён.",
         MISSING_PERMISSIONS: "У LONDO Bot нет права Manage Roles. Статус заявки не изменён.",
+        MISSING_ACCESS: "У LONDO Bot нет доступа к категории заявок. Проверьте права бота на категорию.",
         ROLE_HIERARCHY: "Роль LONDO Bot должна быть выше выдаваемых ролей. Статус заявки не изменён.",
         ROLE_ASSIGNMENT_FAILED: "Discord не подтвердил выдачу всех ролей. Статус заявки не изменён.",
         CHANNEL_CLEANUP_FAILED: "Не удалось удалить каналы обзвона.",

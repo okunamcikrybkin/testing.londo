@@ -908,6 +908,7 @@ model ProfileCustomization {
   showDiscordId Boolean @default(false)
   showGameNickname Boolean @default(true)
   showStaticId Boolean @default(false)
+  showBirthday Boolean @default(true)
   showFamily Boolean @default(true)
   showRank Boolean @default(true)
   showCoins Boolean @default(false)

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { ChannelType, type Guild, type GuildMember, type Role } from "discord.js";
-import { acceptRoleIdsForFamily, applyAcceptedApplicationChanges, cleanupApplicationChannels, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
+import { ChannelType, PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
+import { acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
 import type { ApplicationConfig } from "../types/family.js";
 
 const roles = { fam: "1", memphis: "2", phoenix: "3" };
@@ -62,6 +62,30 @@ test("Site Start Call JSON contract is accepted and reports invalid field names 
   assert.deepEqual(invalid, {
     ok: false,
     issues: [{ field: "discordUserId", expected: "string: 17-20 digit Discord snowflake", kind: "invalid" }],
+  });
+});
+
+test("call channel permissions let the bot send messages and embeds despite the everyone deny", () => {
+  const overwrites = applicationCallOverwrites("guild", "bot", "applicant", ["staff"]);
+  assert.deepEqual(overwrites[0], { id: "guild", deny: [PermissionFlagsBits.ViewChannel] });
+  assert.deepEqual(overwrites[1], {
+    id: "bot",
+    allow: [
+      PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.SendMessages,
+      PermissionFlagsBits.Connect,
+      PermissionFlagsBits.Speak,
+      PermissionFlagsBits.EmbedLinks,
+      PermissionFlagsBits.ReadMessageHistory,
+    ],
+  });
+  assert.deepEqual(overwrites[2], {
+    id: "applicant",
+    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak],
+  });
+  assert.deepEqual(overwrites[3], {
+    id: "staff",
+    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak],
   });
 });
 

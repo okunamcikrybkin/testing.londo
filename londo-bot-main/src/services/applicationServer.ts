@@ -11,7 +11,7 @@ import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { DiscordAPIError, ChannelType, EmbedBuilder, escapeMarkdown, PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
 import type { ApplicationConfig, Family, FamilyRoleIds } from "../types/family.js";
-import { logError, logInfo } from "../utils/logger.js";
+import { describeDiscordError, logError, logInfo } from "../utils/logger.js";
 import { nicknameGuard } from "./nicknameGuard.js";
 import type { GiveawayManager, GiveawayPayload } from "./giveaways.js";
 
@@ -146,11 +146,17 @@ async function startCall(guild: Guild, config: ApplicationConfig, app: Applicati
   if (staffRoleIds.length === 0) throw new Error(`${app.family}_STAFF_ROLES_NOT_CONFIGURED`);
   const staffRoles = await Promise.all(staffRoleIds.map((id) => guild.roles.fetch(id)));
   if (staffRoles.some((role) => !role) || !category || category.type !== ChannelType.GuildCategory || !bot?.permissions.has(PermissionFlagsBits.ManageChannels)) throw new Error("CALL_CONFIGURATION_UNAVAILABLE");
-  const overwrite = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }, { id: applicant.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }, ...staffRoles.filter((role): role is NonNullable<typeof role> => Boolean(role)).map((role) => ({ id: role.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }))];
+  const overwrite = applicationCallOverwrites(
+    guild.roles.everyone.id,
+    bot.id,
+    applicant.id,
+    staffRoles.filter((role): role is NonNullable<typeof role> => Boolean(role)).map((role) => role.id),
+  );
   const text = await guild.channels.create({ name: channelName("app", app), type: ChannelType.GuildText, parent: category.id, topic: `londo-application:${app.id}`, permissionOverwrites: overwrite });
   logInfo("Application text channel created.");
+  let voice: { id: string; delete(reason?: string): Promise<unknown> } | null = null;
   try {
-    const voice = await guild.channels.create({ name: channelName("call", app), type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: overwrite });
+    voice = await guild.channels.create({ name: channelName("call", app), type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: overwrite });
     logInfo("Application voice channel created.");
     const answers = app.answers;
     const date = app.submittedAt ? `<t:${Math.floor(new Date(app.submittedAt).getTime() / 1000)}:f>` : "Не указана";
@@ -163,7 +169,27 @@ async function startCall(guild: Guild, config: ApplicationConfig, app: Applicati
     });
     await text.send({ content: reviewerMention, embeds: [embed], allowedMentions: { users: app.reviewer?.discordId ? [app.reviewer.discordId] : [] } });
     logInfo("Application call started successfully."); return { textChannelId: text.id, voiceChannelId: voice.id };
-  } catch (error) { await text.delete("Application call setup failed"); throw error; }
+  } catch (error) {
+    logError(`Application call setup failed: ${describeDiscordError(error)}`);
+    const cleanup = await Promise.allSettled([
+      text.delete("Application call setup failed"),
+      ...(voice ? [voice.delete("Application call setup failed")] : []),
+    ]);
+    for (const result of cleanup) {
+      if (result.status === "rejected") logError(`Failed to clean up an incomplete application call channel: ${describeDiscordError(result.reason)}`);
+    }
+    throw error;
+  }
+}
+
+export function applicationCallOverwrites(guildId: string, botId: string, applicantId: string, staffRoleIds: readonly string[]) {
+  const sharedPermissions = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak];
+  return [
+    { id: guildId, deny: [PermissionFlagsBits.ViewChannel] },
+    { id: botId, allow: [...sharedPermissions, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ReadMessageHistory] },
+    { id: applicantId, allow: sharedPermissions },
+    ...staffRoleIds.map((id) => ({ id, allow: sharedPermissions })),
+  ];
 }
 
 async function sendApplicantDm(guild: Guild, app: Application, type: "CALL" | "ACCEPTED" | "REJECTED"): Promise<boolean> {
@@ -459,7 +485,18 @@ export function startApplicationServer(guild: Guild, config: ApplicationConfig, 
       if (operation === "call") { const existing = completedCalls.get(app.id); const channels = existing ?? await startCall(guild, config, app); completedCalls.set(app.id, channels); if (!existing) onEvent?.({ application: app, type: "APPLICATION_CALL_STARTED", channelId: channels.textChannelId }); respond(200, { ok: true, ...channels }); return; }
       if (operation === "accept") { await accept(guild, config, roles, app); const cleanup = await cleanupDiscordApplicationChannels(guild, config, app); logInfo("Application accepted successfully."); onEvent?.({ application: app, type: "APPLICATION_ACCEPTED", channelId: app.discordTextChannelId ?? undefined }); respond(200, { ok: true, cleanup }); return; }
       const cleanup = await reject(guild, config, app); onEvent?.({ application: app, type: "APPLICATION_REJECTED", channelId: app.discordTextChannelId ?? undefined }); respond(200, { ok: true, cleanup });
-    } catch (error) { const code = error instanceof AcceptError || error instanceof CleanupError ? error.code : error instanceof Error ? error.message : "DISCORD_OPERATION_FAILED"; respond(503, { ok: false, code: /^[A-Z_]+$/.test(code) ? code : "DISCORD_OPERATION_FAILED", ...(error instanceof CleanupError ? { operation: "cleanup" } : {}) }); }
+    } catch (error) {
+      const code = error instanceof AcceptError || error instanceof CleanupError
+        ? error.code
+        : error instanceof DiscordAPIError && error.code === 50001
+          ? "MISSING_ACCESS"
+          : error instanceof DiscordAPIError && error.code === 50013
+            ? "MISSING_PERMISSIONS"
+            : error instanceof Error
+              ? error.message
+              : "DISCORD_OPERATION_FAILED";
+      respond(503, { ok: false, code: /^[A-Z_]+$/.test(code) ? code : "DISCORD_OPERATION_FAILED", ...(error instanceof CleanupError ? { operation: "cleanup" } : {}) });
+    }
   });
   const host = process.env.LONDO_BOT_HOST?.trim() || "127.0.0.1";
   server.once("listening", () => { const address = server.address(); const port = typeof address === "object" && address ? address.port : config.port; logInfo(`Internal API listening on http://${host}:${port}`); });
