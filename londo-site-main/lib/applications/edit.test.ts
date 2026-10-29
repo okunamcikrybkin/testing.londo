@@ -83,7 +83,7 @@ test("no changes creates no audit or write; same submit validation accepts bound
   const f = fixture();
   assert.deepEqual(await editApplicationInTransaction(f.tx, user, "MEMPHIS", "app", { ...answers, joinReason: ` ${answers.joinReason} ` }), { changed: false });
   assert.equal(f.writes(), 0); assert.equal(f.events.length, 0);
-  for (const age of ["14", "99", "20 лет"]) assert.equal((await editApplicationInTransaction(f.tx, user, "MEMPHIS", "app", { ...changed, oocAge: age })).changed, true);
+  for (const age of ["16", "99", "20 лет"]) assert.equal((await editApplicationInTransaction(f.tx, user, "MEMPHIS", "app", { ...changed, oocAge: age })).changed, true);
 });
 test("missing ID/family mismatch rejected", async () => {
   const f = fixture();

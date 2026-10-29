@@ -10,13 +10,13 @@ export async function editApplicationInTransaction(tx: Prisma.TransactionClient,
   if (!canEditFamilyApplication(user, family) || !user) throw new ApplicationEditError("Недостаточно прав для редактирования заявки этой семьи.");
   if (typeof id !== "string" || !id.trim() || id.length > 64) throw new ApplicationEditError("Некорректный ID заявки.");
   const answers = parseApplicationAnswers(input);
-  if (!answers) throw new ApplicationEditError("Заполните все ответы. Возраст: 14–99; ссылка на скриншот: http/https. Проверьте длину полей.");
+  if (!answers) throw new ApplicationEditError("Заполните все ответы. Возраст: 16–99; ссылка на скриншот: http/https. Проверьте длину полей.");
   // Parameterized SQL; no status is read until concurrent accept/reject has committed.
   await tx.$queryRaw`SELECT id FROM family_applications WHERE id = ${id} AND family::text = ${family} FOR UPDATE`;
   const application = await tx.familyApplication.findFirst({ where: { id, family } });
   if (!application) throw new ApplicationEditError("Заявка не найдена.");
   if (!isEditableApplicationStatus(application.status) || application.operationLock) throw new ApplicationEditError("Заявка уже обрабатывается или завершена. Обновите страницу.");
-  const previous = application.answers && typeof application.answers === "object" && !Array.isArray(application.answers) ? application.answers : {};
+  const previous = parseApplicationAnswers(application.answers) ?? {};
   const changes = Object.keys(applicationAnswerLabels).flatMap((field) => {
     const key = field as keyof typeof answers;
     const before = previous[key] ?? null;

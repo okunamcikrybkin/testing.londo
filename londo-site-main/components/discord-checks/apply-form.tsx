@@ -13,19 +13,21 @@ type Consent = "NOT_GRANTED" | "GRANTED" | "REVOKED";
 
 const steps = ["Discord", "Семья", "О себе", "Интерес", "Проверка"];
 const fields = [
-  { key: "gameNicknameStatic", label: "Игровой никнейм или статик", hint: "Напиши игровой ник. После одобрения заявки бот установит его как твой ник в Discord.", max: 32, rows: 1 },
-  { key: "oocAge", label: "Возраст вне игры", hint: "Укажи возраст цифрами. Подать заявку можно с 14 лет.", max: 2, rows: 1 },
+  { key: "gameNickname", label: "Никнейм", hint: "Напиши игровой ник. После одобрения заявки бот установит его в Discord.", max: 32, rows: 1 },
+  { key: "staticId", label: "Статик", hint: "Укажи свой статик.", max: 30, rows: 1 },
+  { key: "oocAge", label: "Возраст вне игры", hint: "Укажи возраст цифрами. Подать заявку можно с 16 лет.", max: 2, rows: 1 },
   { key: "joinReason", label: "Почему хочешь вступить?", hint: "Пары предложений достаточно. Нам важно понять, что ты ищешь в LONDO.", max: 2000, rows: 4 },
   { key: "discoverySource", label: "Как ты узнал о нас?", hint: "Например: друзья, игровой сервер или знакомство в Discord.", max: 1000, rows: 2 },
   { key: "charactersScreenshotUrl", label: "Ссылка на скриншот персонажей", hint: "Подойдёт любая ссылка, начинающаяся с https:// или http://.", max: 500, rows: 1 },
 ] as const;
-const profileFields = fields.slice(0, 2);
-const motivationFields = fields.slice(2);
+const profileFields = fields.slice(0, 3);
+const motivationFields = fields.slice(3);
 type AnswerKey = (typeof fields)[number]["key"];
 type Answers = Record<AnswerKey, string>;
 
 const emptyAnswers: Answers = {
-  gameNicknameStatic: "",
+  gameNickname: "",
+  staticId: "",
   oocAge: "",
   joinReason: "",
   discoverySource: "",
@@ -176,8 +178,8 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
     const updatedAnswers = { ...answers, ...values };
     if (nextStep === 4) {
       const age = Number(updatedAnswers.oocAge);
-      if (!/^\d{1,2}$/.test(updatedAnswers.oocAge) || age < 14 || age > 99) {
-        setError("Укажи возраст от 14 до 99 лет.");
+      if (!/^\d{1,2}$/.test(updatedAnswers.oocAge) || age < 16 || age > 99) {
+        setError("Укажи возраст от 16 до 99 лет.");
         form.querySelector<HTMLInputElement>("#application-oocAge")?.focus();
         return;
       }
@@ -333,12 +335,12 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
                             maxLength={field.max}
                             value={value}
                             type={field.key === "charactersScreenshotUrl" ? "url" : "text"}
-                            min={field.key === "oocAge" ? 14 : undefined}
+                            min={field.key === "oocAge" ? 16 : undefined}
                             max={field.key === "oocAge" ? 99 : undefined}
                             inputMode={field.key === "oocAge" ? "numeric" : undefined}
                             pattern={field.key === "oocAge" ? "[0-9]{1,2}" : undefined}
                             onChange={(event) => setAnswers((previous) => ({ ...previous, [field.key]: event.target.value }))}
-                            placeholder={field.key === "gameNicknameStatic" ? "Например, Londo_Family" : field.key === "oocAge" ? "Например, 18" : "https://…"}
+                            placeholder={field.key === "gameNickname" ? "Например, Londo_Family" : field.key === "staticId" ? "Например, 566" : field.key === "oocAge" ? "Например, 18" : "https://…"}
                             aria-describedby={`${field.key}-hint`}
                           />
                         )}
@@ -486,7 +488,7 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
                     <span className={`${s.applicationStatus} ${application.status === "ACCEPTED" ? s.statusAccepted : application.status === "REJECTED" ? s.statusRejected : ""}`}>{applicationStatus[application.status] ?? "На рассмотрении"}</span>
                   </div>
                   <div className={s.applicationNext}><span className={`${s.nextMark} ${application.status === "ACCEPTED" ? s.nextAccepted : ""}`} aria-hidden="true">{application.status === "ACCEPTED" ? "✓" : application.status === "REJECTED" ? "i" : "·"}</span><p>{statusCopy[application.status] ?? "Статус заявки обновится здесь."}</p></div>
-                  {parsed && <p className={s.applicationNickname}>Игровой ник: {parsed.gameNicknameStatic}</p>}
+                  {parsed && <p className={s.applicationNickname}>Игровой ник: {parsed.gameNickname} · статик {parsed.staticId}</p>}
                 </article>
               );
             })}

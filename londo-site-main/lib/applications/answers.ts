@@ -3,9 +3,11 @@ import { Prisma } from "@prisma/client";
 export type ApplicationAnswers = {
   charactersScreenshotUrl: string;
   discoverySource: string;
-  gameNicknameStatic: string;
+  gameNickname: string;
+  staticId: string;
   joinReason: string;
   oocAge: string;
+  gameNicknameStatic: string;
 };
 
 function readAnswer(value: unknown, maxLength: number): string | null {
@@ -23,14 +25,16 @@ export function parseApplicationAnswers(value: unknown): ApplicationAnswers | nu
   }
 
   const answers = value as Record<string, unknown>;
-  const gameNicknameStatic = readAnswer(answers.gameNicknameStatic, 100);
+  const gameNickname = readAnswer(answers.gameNickname ?? answers.gameNicknameStatic, 32);
+  const staticId = readAnswer(answers.staticId, 30) ?? (typeof answers.gameNicknameStatic === "string" ? answers.gameNicknameStatic.split("|").slice(1).join("|").trim() : null);
   const oocAge = readAnswer(answers.oocAge, 20);
   const joinReason = readAnswer(answers.joinReason, 2_000);
   const discoverySource = readAnswer(answers.discoverySource, 1_000);
   const charactersScreenshotUrl = readAnswer(answers.charactersScreenshotUrl, 500);
 
   if (
-    !gameNicknameStatic ||
+    !gameNickname ||
+    !staticId ||
     !oocAge ||
     !joinReason ||
     !discoverySource ||
@@ -41,7 +45,7 @@ export function parseApplicationAnswers(value: unknown): ApplicationAnswers | nu
 
   const ageMatch = /^(\d{1,2})(?:\s*(?:лет|года?|years?))?$/i.exec(oocAge);
   const age = ageMatch ? Number(ageMatch[1]) : NaN;
-  if (!Number.isInteger(age) || age < 14 || age > 99) {
+  if (!Number.isInteger(age) || age < 16 || age > 99) {
     return null;
   }
 
@@ -57,7 +61,9 @@ export function parseApplicationAnswers(value: unknown): ApplicationAnswers | nu
   return {
     charactersScreenshotUrl,
     discoverySource,
-    gameNicknameStatic,
+    gameNickname,
+    staticId,
+    gameNicknameStatic: `${gameNickname} | ${staticId}`,
     joinReason,
     oocAge,
   };

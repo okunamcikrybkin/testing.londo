@@ -21,7 +21,7 @@ export function applicationPayload(
   reviewer?: Reviewer,
 ): { application: BotApplicationPayload & { rejectionReason?: string | null } } {
   const answers = parseApplicationAnswers(application.answers);
-  const gameNicknameStatic = answers?.gameNicknameStatic ?? null;
+  const gameNicknameStatic = answers ? `${answers.gameNickname} | ${answers.staticId}` : null;
   return {
     application: {
       id: application.id,
@@ -32,6 +32,8 @@ export function applicationPayload(
       discordTextChannelId: application.discordTextChannelId,
       discordVoiceChannelId: application.discordVoiceChannelId,
       gameNicknameStatic,
+      gameNickname: answers?.gameNickname ?? null,
+      staticId: answers?.staticId ?? null,
       answers,
       submittedAt: application.createdAt.toISOString(),
       ...(reviewer ? { reviewer } : {}),

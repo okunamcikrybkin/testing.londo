@@ -6,7 +6,7 @@ import type { ApplicationAnswers } from "@/lib/applications/answers";
 import { editApplicationAction } from "@/lib/applications/edit-action";
 import { applicationAnswerLabels } from "@/lib/applications/edit-policy";
 
-const limits = { gameNicknameStatic: 100, oocAge: 20, joinReason: 2000, discoverySource: 1000, charactersScreenshotUrl: 500 };
+const limits = { gameNickname: 32, staticId: 30, oocAge: 20, joinReason: 2000, discoverySource: 1000, charactersScreenshotUrl: 500 };
 export function ApplicationEditor({ applicationId, family, answers }: { applicationId: string; family: string; answers: ApplicationAnswers }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const form = useRef<HTMLFormElement>(null);
@@ -35,7 +35,7 @@ export function ApplicationEditor({ applicationId, family, answers }: { applicat
           {Object.entries(applicationAnswerLabels).map(([field, label]) => { const key = field as keyof ApplicationAnswers; return <label key={key} className="block text-sm">{label}
             <textarea name={key} defaultValue={answers[key]} required maxLength={limits[key]} rows={key === "joinReason" || key === "discoverySource" ? 3 : 1} className="mt-2 block w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-white focus:outline-2 focus:outline-accent" />
           </label>; })}
-          <p className="text-xs text-muted">Возраст: 14–99. Ссылка на скриншот должна начинаться с http:// или https://.</p>
+          <p className="text-xs text-muted">Возраст: 16–99. Ссылка на скриншот должна начинаться с http:// или https://.</p>
           <p role="alert" className="text-sm text-rose-200">{message}</p>
           <div className="flex flex-wrap justify-end gap-3">
             <button type="button" className="londo-button-ghost px-4 py-2" onClick={() => dialog.current?.close()}>Отмена</button>

@@ -9,7 +9,8 @@ export function canEditFamilyApplication(user: Pick<SessionUser, "effectiveAcces
 }
 
 export const applicationAnswerLabels = {
-  gameNicknameStatic: "Игровой никнейм / статик",
+  gameNickname: "Никнейм",
+  staticId: "Статик",
   oocAge: "OOC возраст",
   joinReason: "Причина вступления",
   discoverySource: "Откуда узнал о семье",

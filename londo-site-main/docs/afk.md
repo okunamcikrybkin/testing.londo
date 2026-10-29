@@ -6,7 +6,7 @@
 
 Migration 20260905220000_add_family_afk применена 2026-09-05 через prisma migrate deploy к подтверждённой пользователем новой dev DB LONDO/atemii. Созданы AfkApplication и AfkSession, индексы и ограничения длительности/дубликатов. Остальные таблицы и migrations не переписывались. Prisma Client generated. Для освобождения DLL были остановлены только точно определённые процессы Next dev этого сайта.
 
-В londo-bot/.env нужно задать FAMILY_AFK_ROLE_ID — ID специальной AFK-роли Discord. Сейчас AFK Role ID отсутствует. При необходимости вместо общей роли задайте MEMPHIS_AFK_ROLE_ID и PHOENIX_AFK_ROLE_ID. Не используйте ID семейных ролей или voice AFK channel. AFK-роль должна быть ниже высшей роли bot; bot требуется Manage Roles. Не меняйте ID AFK-роли, пока существуют незавершённые sessions, использующие прежний ID.
+В londo-bot/.env нужно задать FAMILY_HOLIDAY_ROLE_ID — ID специальной роли отпуска Discord. Для отдельных семей можно задать MEMPHIS_HOLIDAY_ROLE_ID и PHOENIX_HOLIDAY_ROLE_ID. Не используйте ID семейных ролей или voice AFK channel. Роль отпуска должна быть ниже высшей роли bot; bot требуется Manage Roles. Не меняйте ID роли отпуска, пока существуют незавершённые sessions, использующие прежний ID.
 
 Перезапустите site и bot. Администратор Discord выполняет /setup-afk в нужном текстовом канале. Команда обновляет найденную панель с маркером londo-afk-approval либо создаёт её, если панели нет среди последних 100 сообщений. Требуются View Channel, Send Messages, Embed Links и Read Message History.
 

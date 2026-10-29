@@ -13,7 +13,7 @@ export function validateApplicationAnswers(value: ApplicationAnswers): Applicati
   const gameNicknameStatic = value.gameNicknameStatic.trim();
   const answers = { gameNicknameStatic, oocAge: clean(value.oocAge, 20), joinReason: clean(value.joinReason, 2000), discoverySource: clean(value.discoverySource, 1000), charactersScreenshotUrl: clean(value.charactersScreenshotUrl, 500) };
   const age = /^(\d{1,2})(?:\s*(?:лет|года?|years?))?$/i.exec(answers.oocAge);
-  if (!answers.gameNicknameStatic || Array.from(answers.gameNicknameStatic).length > 32 || !answers.joinReason || !answers.discoverySource || !age || Number(age[1]) < 14 || Number(age[1]) > 99) return null;
+  if (!answers.gameNicknameStatic || Array.from(answers.gameNicknameStatic).length > 32 || !answers.joinReason || !answers.discoverySource || !age || Number(age[1]) < 16 || Number(age[1]) > 99) return null;
   try { const url = new URL(answers.charactersScreenshotUrl); if (url.protocol !== "http:" && url.protocol !== "https:") return null; } catch { return null; }
   return answers;
 }

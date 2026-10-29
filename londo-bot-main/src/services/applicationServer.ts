@@ -15,7 +15,7 @@ import { logError, logInfo } from "../utils/logger.js";
 import { nicknameGuard } from "./nicknameGuard.js";
 import type { GiveawayManager, GiveawayPayload } from "./giveaways.js";
 
-type Application = { id: string; family: Family; discordUserId: string; discordUsername: string; discordDisplayName: string; discordTextChannelId: string | null; discordVoiceChannelId: string | null; gameNicknameStatic?: string | null; rejectionReason?: string; answers?: { gameNicknameStatic: string; oocAge: string; joinReason: string; discoverySource: string; charactersScreenshotUrl: string } | null; submittedAt?: string; reviewer?: { discordId: string; displayName: string } };
+type Application = { id: string; family: Family; discordUserId: string; discordUsername: string; discordDisplayName: string; discordTextChannelId: string | null; discordVoiceChannelId: string | null; gameNicknameStatic?: string | null; gameNickname?: string | null; staticId?: string | null; rejectionReason?: string; answers?: { gameNicknameStatic?: string; gameNickname?: string; staticId?: string; oocAge: string; joinReason: string; discoverySource: string; charactersScreenshotUrl: string } | null; submittedAt?: string; reviewer?: { discordId: string; displayName: string } };
 type RequestBody = { application?: Application };
 type ApplicationOperation = "call" | "accept" | "reject";
 export type ApplicationServerEvent = { application: Application; type: "APPLICATION_CALL_STARTED" | "APPLICATION_ACCEPTED" | "APPLICATION_REJECTED"; channelId?: string };
@@ -185,8 +185,10 @@ async function sendApplicantDm(guild: Guild, app: Application, type: "CALL" | "A
 
 async function accept(guild: Guild, config: ApplicationConfig, roles: FamilyRoleIds, app: Application): Promise<void> {
   logInfo("Application accept received.");
-  const nickname = app.gameNicknameStatic?.trim();
-  if (!nickname || Array.from(nickname).length > 32) throw new AcceptError("INVALID_APPLICATION_NICKNAME");
+  const nickname = app.gameNickname?.trim() || app.answers?.gameNickname?.trim() || app.gameNicknameStatic?.split("|")[0]?.trim();
+  const staticId = app.staticId?.trim() || app.answers?.staticId?.trim() || app.gameNicknameStatic?.split("|").slice(1).join("|").trim();
+  const discordNickname = nickname && staticId ? `${nickname} | ${staticId}` : nickname;
+  if (!discordNickname || Array.from(discordNickname).length > 32) throw new AcceptError("INVALID_APPLICATION_NICKNAME");
   let member;
   try { member = await guild.members.fetch(app.discordUserId); logInfo("Applicant member: found."); }
   catch { logInfo("Applicant member: not found."); throw new AcceptError("MEMBER_NOT_FOUND"); }
@@ -206,7 +208,7 @@ async function accept(guild: Guild, config: ApplicationConfig, roles: FamilyRole
   const resolvedRoles = grantRoles.filter((role): role is Role => Boolean(role));
   if (resolvedRoles.some((role) => !role.editable)) { logInfo("Role hierarchy: FAILED."); throw new AcceptError("ROLE_HIERARCHY"); }
   logInfo("Role hierarchy: OK.");
-  await applyAcceptedApplicationChanges(member, resolvedRoles, nickname);
+  await applyAcceptedApplicationChanges(member, resolvedRoles, discordNickname);
   logInfo("Application roles and nickname updated successfully.");
 }
 
