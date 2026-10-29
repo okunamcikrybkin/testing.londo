@@ -11,10 +11,14 @@ function normalizedRoleName(value: string): string {
 
 /** Resolves a member's highest configured rank in one family scope. */
 export function resolveFamilyRank(member: GuildMember, family: Family): ResolvedFamilyRank | null {
-  const matching = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family) && (
-    member.roles.cache.has(rank.roleId)
-    || [...member.roles.cache.values()].some((role) => typeof role?.name === "string" && rank.roleNames?.includes(normalizedRoleName(role.name)))
+  const scopedRanks = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family));
+  const roles = [...member.roles.cache.values()];
+  const matchingByName = scopedRanks.filter((rank) => roles.some((role) =>
+    typeof role?.name === "string" && rank.roleNames?.includes(normalizedRoleName(role.name))
   ));
+  const matching = matchingByName.length
+    ? matchingByName
+    : scopedRanks.filter((rank) => member.roles.cache.has(rank.roleId));
   const rank = matching.sort((left, right) => right.priority - left.priority)[0];
 
   if (!rank || rank.priority < 7) { const promotion = resolvePromotionRank(id => member.roles.cache.has(id), family); if (promotion) return promotion; }

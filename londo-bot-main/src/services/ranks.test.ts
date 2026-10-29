@@ -56,3 +56,8 @@ test("known rank names resolve when Discord role IDs differ from the legacy mapp
   assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "MEMPHIS")?.key, "MEMPHIS_DEP_OWNER");
   assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "PHOENIX"), null);
 });
+
+test("a recognized role name overrides a stale ID that used to belong to another rank", () => {
+  const ownerId = rank("OWNER");
+  assert.equal(resolveFamilyRank(member([ownerId], "renamed", { [ownerId]: "Dep.Owner" }), "MEMPHIS")?.key, "MEMPHIS_DEP_OWNER");
+});
