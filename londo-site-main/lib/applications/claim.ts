@@ -10,12 +10,23 @@ export async function claimFamilyApplication(id: string, family: Family, userId:
   if (application.claimedByUserId && application.claimedByUserId !== userId) throw new ApplicationClaimError("Заявка уже закреплена за другим рекрутом.");
   if (application.claimedByUserId === userId) return application;
 
-  const result = await prisma.familyApplication.updateMany({
-    where: { id, family, status: { in: ["NEW", "CALL"] }, claimedByUserId: null },
-    data: { claimedByUserId: userId, claimedAt: new Date() },
+  return prisma.$transaction(async (transaction) => {
+    const result = await transaction.familyApplication.updateMany({
+      where: { id, family, status: { in: ["NEW", "CALL"] }, claimedByUserId: null },
+      data: { claimedByUserId: userId, claimedAt: new Date() },
+    });
+    if (result.count !== 1) throw new ApplicationClaimError("Заявку уже забрал другой рекрут.");
+    await transaction.auditLog.create({
+      data: {
+        action: "APPLICATION_CLAIMED",
+        actorId: userId,
+        metadata: { family },
+        targetId: id,
+        targetType: "FamilyApplication",
+      },
+    });
+    return transaction.familyApplication.findUniqueOrThrow({ where: { id } });
   });
-  if (result.count !== 1) throw new ApplicationClaimError("Заявку уже забрал другой рекрут.");
-  return prisma.familyApplication.findUniqueOrThrow({ where: { id } });
 }
 
 export async function claimApplicationFromDiscord(eventId: string, discordId: string) {

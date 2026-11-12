@@ -5,6 +5,7 @@ import { VACATION_ACTION_LABELS, LOG_CATEGORIES, type LogCategoryFilter, type Lo
 export type LogFilters = { q: string; family: Family | "ALL"; category: LogCategoryFilter; actor: string; target: string; result: LogResult | "ALL"; from: Date | null; to: Date | null; page: number; pageSize: 25 | 50 };
 export type LogFeedItem = { id: string; detailId: string; source: "audit" | "event"; category: LogCategoryFilter; action: string; summary: string; result: string | null; family: Family | null; actor: string | null; target: string | null; createdAt: Date; metadata: Record<string, unknown> | null };
 export type LogDetail = LogFeedItem & { technical: Record<string, string | null> };
+type AuditWithActor = AuditLog & { actor: { displayName: string; username: string; discordId: string } | null };
 
 const pageSizes = new Set([25, 50]);
 const auditCategory = (action: string): LogCategoryFilter => action.startsWith("ACCESS_") ? "ACCESS" : action.startsWith("APPLICATION_") ? "APPLICATION" : "SYSTEM";
@@ -20,6 +21,7 @@ const auditSummary: Record<string, string> = {
   ACCESS_REQUEST_CREATED: "Создан запрос на дополнительные права",
   ACCESS_REQUEST_APPROVED: "Запрос на дополнительные права одобрен",
   ACCESS_REQUEST_REJECTED: "Запрос на дополнительные права отклонён",
+  APPLICATION_CLAIMED: "Заявка взята в работу",
   APPLICATION_CALL_STARTED: "Заявка переведена на обзвон",
   APPLICATION_ACCEPTED: "Заявка принята",
   APPLICATION_REJECTED: "Заявка отклонена",
@@ -66,7 +68,7 @@ function eventItem(event: LogEvent): LogFeedItem {
   return { id: event.id, detailId: `event_${event.id}`, source: "event", category: event.category, action: event.action, summary: dynamicMembershipSummary ? event.summary : VACATION_ACTION_LABELS[event.action] ?? event.summary, result: event.result, family: event.family, actor, target, createdAt: event.createdAt, metadata: asRecord(event.metadata) };
 }
 
-function auditItem(audit: AuditLog & { actor: { displayName: string; username: string; discordId: string } | null }): LogFeedItem {
+function auditItem(audit: AuditWithActor): LogFeedItem {
   const metadata = asRecord(audit.metadata); const family = metadata?.family === "MEMPHIS" ? metadata.family : null;
   return { id: audit.id, detailId: `audit_${audit.id}`, source: "audit", category: auditCategory(audit.action), action: audit.action, summary: auditSummary[audit.action] ?? "Событие сайта", result: null, family, actor: audit.actor ? audit.actor.displayName || audit.actor.username : null, target: audit.targetId, createdAt: audit.createdAt, metadata };
 }
@@ -84,7 +86,7 @@ export async function getLogFeed(filters: LogFilters, journal: LogJournal | "ALL
   const candidateTake = Math.min(filters.page * filters.pageSize + 1, 501);
   const [events, audits] = await Promise.all([
     journal === "SITE" ? Promise.resolve([] as LogEvent[]) : prisma.logEvent.findMany({ where: eventWhere(filters), orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: candidateTake }),
-    journal === "DISCORD" ? Promise.resolve([] as AuditLog[]) : prisma.auditLog.findMany({ where: auditWhere(filters), include: { actor: { select: { displayName: true, username: true, discordId: true } } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: candidateTake }),
+    journal === "DISCORD" ? Promise.resolve([] as AuditWithActor[]) : prisma.auditLog.findMany({ where: auditWhere(filters), include: { actor: { select: { displayName: true, username: true, discordId: true } } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: candidateTake }),
   ]);
   const merged = [...events.map(eventItem), ...audits.map(auditItem)].filter((item) => passesLocalFilters(item, filters)).sort((a, b) => b.createdAt.valueOf() - a.createdAt.valueOf() || b.id.localeCompare(a.id));
   const offset = (filters.page - 1) * filters.pageSize;

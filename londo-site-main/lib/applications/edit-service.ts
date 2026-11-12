@@ -1,6 +1,6 @@
 import type { Family, Prisma } from "@prisma/client";
 import type { SessionUser } from "../auth/session";
-import { parseApplicationAnswers } from "./answers";
+import { isValidDiscordApplicationNickname, parseApplicationAnswers, type ApplicationAnswers } from "./answers";
 import { applicationAnswerLabels, canEditFamilyApplication, isEditableApplicationStatus } from "./edit-policy";
 
 export class ApplicationEditError extends Error {}
@@ -11,12 +11,13 @@ export async function editApplicationInTransaction(tx: Prisma.TransactionClient,
   if (typeof id !== "string" || !id.trim() || id.length > 64) throw new ApplicationEditError("Некорректный ID заявки.");
   const answers = parseApplicationAnswers(input);
   if (!answers) throw new ApplicationEditError("Заполните все ответы. Возраст: 16–99; ссылка на скриншот: http/https. Проверьте длину полей.");
+  if (!isValidDiscordApplicationNickname(answers)) throw new ApplicationEditError("Игровой никнейм вместе со статиком должен занимать не более 32 символов.");
   // Parameterized SQL; no status is read until concurrent accept/reject has committed.
   await tx.$queryRaw`SELECT id FROM family_applications WHERE id = ${id} AND family::text = ${family} FOR UPDATE`;
   const application = await tx.familyApplication.findFirst({ where: { id, family } });
   if (!application) throw new ApplicationEditError("Заявка не найдена.");
   if (!isEditableApplicationStatus(application.status) || application.operationLock) throw new ApplicationEditError("Заявка уже обрабатывается или завершена. Обновите страницу.");
-  const previous = parseApplicationAnswers(application.answers) ?? {};
+  const previous: Partial<ApplicationAnswers> = parseApplicationAnswers(application.answers) ?? {};
   const changes = Object.keys(applicationAnswerLabels).flatMap((field) => {
     const key = field as keyof typeof answers;
     const before = previous[key] ?? null;

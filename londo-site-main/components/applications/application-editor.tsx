@@ -6,7 +6,7 @@ import type { ApplicationAnswers } from "@/lib/applications/answers";
 import { editApplicationAction } from "@/lib/applications/edit-action";
 import { applicationAnswerLabels } from "@/lib/applications/edit-policy";
 
-const limits = { gameNickname: 32, staticId: 30, oocAge: 20, joinReason: 2000, discoverySource: 1000, charactersScreenshotUrl: 500 };
+const limits: Partial<Record<keyof ApplicationAnswers, number>> = { gameNickname: 32, staticId: 30, oocAge: 20, joinReason: 2000, discoverySource: 1000, charactersScreenshotUrl: 500 };
 export function ApplicationEditor({ applicationId, family, answers }: { applicationId: string; family: string; answers: ApplicationAnswers }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const form = useRef<HTMLFormElement>(null);

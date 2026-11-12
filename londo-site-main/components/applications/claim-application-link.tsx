@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export function ClaimApplicationLink({ id, family, href, claimed, owned }: { id: string; family: "memphis" | "phoenix"; href: string; claimed: boolean; owned: boolean }) {
+export function ClaimApplicationLink({ id, family, href, completed, claimed, owned }: { id: string; family: "memphis" | "phoenix"; href: string; completed: boolean; claimed: boolean; owned: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -25,7 +25,7 @@ export function ClaimApplicationLink({ id, family, href, claimed, owned }: { id:
     }
   }
 
-  if (owned) return <Link href={href} className="londo-ui-button londo-ui-button-primary shrink-0">Открыть заявку</Link>;
+  if (completed || owned) return <Link href={href} className="londo-ui-button londo-ui-button-primary shrink-0">Открыть заявку</Link>;
   if (claimed) return <span className="londo-ui-badge" data-tone="warning">Заявка уже закреплена</span>;
 
   return <>

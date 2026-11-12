@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
   asApplicationAnswersJson,
+  isValidDiscordApplicationNickname,
   parseApplicationAnswers,
   type ApplicationAnswers,
 } from "@/lib/applications/answers";
@@ -47,6 +48,9 @@ export function parseApplicationIntake(payload: unknown): ApplicationIntake {
   const answers = parseApplicationAnswers(value.answers);
   if (!answers) {
     throw new ApplicationInputError("Ответы анкеты заполнены некорректно.");
+  }
+  if (!isValidDiscordApplicationNickname(answers)) {
+    throw new ApplicationInputError("Игровой никнейм вместе со статиком должен занимать не более 32 символов.");
   }
 
   if (JSON.stringify(answers).length > MAX_ANSWERS_LENGTH) {
@@ -95,6 +99,10 @@ export function isValidBotSecret(requestSecret: string | null): boolean {
 
 export async function createFamilyApplication(input: ApplicationIntake) {
   if (input.family !== "MEMPHIS") throw new ApplicationInputError("Семья больше недоступна.");
+  const answers = parseApplicationAnswers(input.answers);
+  if (!answers || !isValidDiscordApplicationNickname(answers)) {
+    throw new ApplicationInputError("Игровой никнейм вместе со статиком должен занимать не более 32 символов.");
+  }
   return prisma.$transaction(async (transaction) => {
     const active = await transaction.familyApplication.findFirst({ where: { family: input.family, discordUserId: input.discordUserId, status: { in: ["NEW", "CALL"] } }, select: { id: true } });
     if (active) throw new ApplicationInputError("У пользователя уже есть активная заявка.");

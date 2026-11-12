@@ -10,6 +10,10 @@ export type ApplicationAnswers = {
   gameNicknameStatic: string;
 };
 
+export function isValidDiscordApplicationNickname(answers: Pick<ApplicationAnswers, "gameNickname" | "staticId">): boolean {
+  return Array.from(`${answers.gameNickname} | ${answers.staticId}`).length <= 32;
+}
+
 function readAnswer(value: unknown, maxLength: number): string | null {
   if (typeof value !== "string") {
     return null;

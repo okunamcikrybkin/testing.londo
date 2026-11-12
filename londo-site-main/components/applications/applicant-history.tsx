@@ -1,15 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { familyLabel } from "@/lib/applications/families";
+import { formatApplicationDate } from "@/lib/applications/date";
 import { StatusBadge } from "@/components/applications/status-badge";
 import { FamilyServerIcon } from "@/components/family-server-icon";
 
 type HistoryEntry = Prisma.FamilyApplicationGetPayload<{
   include: { reviewedBy: { select: { displayName: true; username: true } } };
 }>;
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
 
 export function ApplicantHistory({ entries }: { entries: HistoryEntry[] }) {
   return (
@@ -34,11 +31,11 @@ export function ApplicantHistory({ entries }: { entries: HistoryEntry[] }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-white">Заявка на вступление</h3>
                       <span className="londo-ui-badge">
-                        <FamilyServerIcon family={entry.family} size="inline" />
+                        {entry.family === "MEMPHIS" ? <FamilyServerIcon family="MEMPHIS" size="inline" /> : null}
                         {familyLabel(entry.family)}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">Подана {formatDate(entry.createdAt)}</p>
+                    <p className="mt-1 text-xs text-muted">Подана {formatApplicationDate(entry.createdAt)}</p>
                   </div>
                   <StatusBadge status={entry.status} />
                 </div>
@@ -50,7 +47,7 @@ export function ApplicantHistory({ entries }: { entries: HistoryEntry[] }) {
                   </div>
                   <div>
                     <dt className="text-xs text-muted">Дата решения</dt>
-                    <dd className="mt-1 text-white">{formatDate(entry.completedAt ?? entry.updatedAt)}</dd>
+                    <dd className="mt-1 text-white">{formatApplicationDate(entry.completedAt ?? entry.updatedAt)}</dd>
                   </div>
                 </dl>
 

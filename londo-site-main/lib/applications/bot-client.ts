@@ -14,7 +14,7 @@ export class BotOperationError extends Error {
 
 type BotApplication = Pick<FamilyApplication, "answers" | "id" | "family" | "createdAt" | "discordDisplayName" | "discordTextChannelId" | "discordUserId" | "discordUsername" | "discordVoiceChannelId">;
 type Reviewer = { discordId: string; displayName: string };
-type BotApplicationPayload = Omit<BotApplication, "answers" | "createdAt"> & { gameNicknameStatic: string | null; answers: ApplicationAnswers | null; submittedAt: string; reviewer?: Reviewer };
+type BotApplicationPayload = Omit<BotApplication, "answers" | "createdAt"> & { gameNickname: string | null; staticId: string | null; gameNicknameStatic: string | null; answers: ApplicationAnswers | null; submittedAt: string; reviewer?: Reviewer };
 
 export function applicationPayload(
   application: BotApplication & { rejectionReason?: string | null },
@@ -89,7 +89,7 @@ async function callBot(path: string, payload: object): Promise<Record<string, un
       const cleanupFailure = body && typeof body === "object" && "operation" in body && body.operation === "cleanup";
       const messages: Record<string, string> = {
         MEMBER_NOT_FOUND: "Участник не найден на Discord-сервере. Статус заявки не изменён.",
-        INVALID_APPLICATION_NICKNAME: "В заявке не указан корректный никнейм Discord (не более 32 символов). Исправьте заявку перед принятием.",
+        INVALID_APPLICATION_NICKNAME: "Игровой никнейм вместе со статиком должен занимать не более 32 символов. Исправьте заявку перед принятием.",
         NICKNAME_UPDATE_FAILED: "Не удалось установить участнику никнейм из заявки. Проверьте право «Управлять никнеймами» у бота; принятие отменено, статус заявки не изменён.",
         NICKNAME_PERMISSION_MISSING: "У LONDO Bot нет права «Управлять никнеймами». Никнейм не изменён, статус заявки не изменён.",
         NICKNAME_HIERARCHY: "Бот не может изменить никнейм участника из-за иерархии ролей. Поднимите роль LONDO Bot выше ролей участника.",

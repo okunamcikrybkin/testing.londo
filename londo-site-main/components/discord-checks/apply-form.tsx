@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { parseApplicationAnswers } from "@/lib/applications/answers";
+import { isValidDiscordApplicationNickname, parseApplicationAnswers } from "@/lib/applications/answers";
+import { formatApplicationDate } from "@/lib/applications/date";
 import { FamilyServerIcon } from "@/components/family-server-icon";
 import { Icon } from "@/components/promotions/ui";
 import { applyRequest } from "./client";
@@ -24,6 +25,7 @@ const profileFields = fields.slice(0, 3);
 const motivationFields = fields.slice(3);
 type AnswerKey = (typeof fields)[number]["key"];
 type Answers = Record<AnswerKey, string>;
+type ConsentDraft = { family: Family | ""; step: number; answers: Answers; member: boolean; createdAt: number };
 
 const emptyAnswers: Answers = {
   gameNickname: "",
@@ -33,6 +35,8 @@ const emptyAnswers: Answers = {
   discoverySource: "",
   charactersScreenshotUrl: "",
 };
+const consentDraftKey = "londo-apply-consent-draft";
+const consentDraftLifetime = 10 * 60 * 1000;
 const familyLabel: Record<Family, string> = { MEMPHIS: "Memphis" };
 const applicationStatus: Record<string, string> = {
   NEW: "Получена",
@@ -41,6 +45,40 @@ const applicationStatus: Record<string, string> = {
   REJECTED: "Не одобрена",
 };
 const pendingStatuses = new Set(["NEW", "CALL"]);
+
+function parseConsentDraft(value: unknown): ConsentDraft | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const draft = value as Record<string, unknown>;
+  const draftAnswers = draft.answers;
+  if (
+    (draft.family !== "" && draft.family !== "MEMPHIS")
+    || typeof draft.step !== "number"
+    || !Number.isInteger(draft.step)
+    || draft.step < 1
+    || draft.step > steps.length
+    || typeof draft.member !== "boolean"
+    || typeof draft.createdAt !== "number"
+    || Date.now() - draft.createdAt > consentDraftLifetime
+    || draft.createdAt > Date.now() + 5_000
+    || !draftAnswers
+    || typeof draftAnswers !== "object"
+    || Array.isArray(draftAnswers)
+  ) {
+    return null;
+  }
+
+  const answers = draftAnswers as Record<string, unknown>;
+  if (!fields.every(({ key }) => typeof answers[key] === "string")) return null;
+
+  return {
+    family: draft.family,
+    step: draft.step,
+    answers: Object.fromEntries(fields.map(({ key }) => [key, answers[key]])) as Answers,
+    member: draft.member,
+    createdAt: draft.createdAt,
+  };
+}
 
 function getCallbackError(result: string) {
   if (!result || ["granted", "declined"].includes(result)) return "";
@@ -110,6 +148,38 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (!consentResult) return;
+
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      try {
+        const saved = sessionStorage.getItem(consentDraftKey);
+        if (!saved) return;
+        sessionStorage.removeItem(consentDraftKey);
+        const draft = parseConsentDraft(JSON.parse(saved));
+        if (!draft) {
+          setError("Сохранённый черновик устарел или повреждён. Проверьте ответы перед отправкой.");
+          return;
+        }
+
+        setFamily(draft.family);
+        setStep(draft.step);
+        setAnswers(draft.answers);
+        setMember(draft.member);
+        setNotice(consentResult === "granted"
+          ? "Дополнительная проверка подключена. Черновик заявки восстановлен."
+          : "Черновик заявки восстановлен. Проверка Discord не обязательна.");
+      } catch {
+        setError("Не удалось восстановить черновик заявки. Проверьте ответы перед отправкой.");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [consentResult]);
+
   function goTo(nextStep: number) {
     setError("");
     setNotice("");
@@ -147,6 +217,17 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
     setError("");
     try {
       const result = await applyRequest<{ url: string }>({ operation: "CONSENT" });
+      try {
+        sessionStorage.setItem(consentDraftKey, JSON.stringify({
+          family,
+          step,
+          answers,
+          member,
+          createdAt: Date.now(),
+        } satisfies ConsentDraft));
+      } catch {
+        throw new Error("Не удалось сохранить черновик заявки перед переходом в Discord. Проверьте настройки хранилища браузера и попробуйте снова.");
+      }
       window.location.assign(result.url);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось открыть Discord. Попробуй ещё раз.");
@@ -184,9 +265,16 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
         return;
       }
     }
-    if (nextStep === 5 && !parseApplicationAnswers(updatedAnswers)) {
-      setError("Проверь ответы и ссылку на скриншот — она должна начинаться с http:// или https://.");
-      return;
+    if (nextStep === 5) {
+      const parsedAnswers = parseApplicationAnswers(updatedAnswers);
+      if (!parsedAnswers) {
+        setError("Проверь ответы и ссылку на скриншот — она должна начинаться с http:// или https://.");
+        return;
+      }
+      if (!isValidDiscordApplicationNickname(parsedAnswers)) {
+        setError("Игровой никнейм вместе со статиком должен занимать не более 32 символов — это ограничение Discord.");
+        return;
+      }
     }
     setAnswers(updatedAnswers);
     setError("");
@@ -199,6 +287,7 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
     setError("");
     try {
       await applyRequest({ operation: "SUBMIT", family, answers });
+      sessionStorage.removeItem(consentDraftKey);
       setNotice("Заявка отправлена. Статус можно посмотреть ниже.");
       setStep(1);
       setFamily("");
@@ -484,7 +573,7 @@ export function ApplyForm({ consentResult, initialFamily = "" }: { consentResult
               return (
                 <article className={s.applicationCard} key={application.id}>
                   <div className={s.applicationTop}>
-                    <div><span className={s.applicationFamily}><FamilyServerIcon family={application.family} size="inline" /> {familyLabel[application.family]}</span><p className={s.applicationDate}>Подана {new Date(application.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p></div>
+                    <div><span className={s.applicationFamily}><FamilyServerIcon family={application.family} size="inline" /> {familyLabel[application.family]}</span><p className={s.applicationDate}>Подана {formatApplicationDate(application.createdAt, false)}</p></div>
                     <span className={`${s.applicationStatus} ${application.status === "ACCEPTED" ? s.statusAccepted : application.status === "REJECTED" ? s.statusRejected : ""}`}>{applicationStatus[application.status] ?? "На рассмотрении"}</span>
                   </div>
                   <div className={s.applicationNext}><span className={`${s.nextMark} ${application.status === "ACCEPTED" ? s.nextAccepted : ""}`} aria-hidden="true">{application.status === "ACCEPTED" ? "✓" : application.status === "REJECTED" ? "i" : "·"}</span><p>{statusCopy[application.status] ?? "Статус заявки обновится здесь."}</p></div>

@@ -114,7 +114,10 @@ lists, details, and mutation actions; these checks run on the server.
 
 Each application progresses through `NEW`, `CALL`, `ACCEPTED`, or `REJECTED`.
 The same Discord user can have only one active (`NEW` or `CALL`) application in
-each family. Completed applications remain in history.
+each family. Completed applications remain in history. Application times in
+the staff workspace are shown in Moscow time. The game nickname and static,
+combined as `nickname | static`, must fit Discord's 32-character nickname
+limit so the bot can approve the application.
 
 The Discord bot creates applications through `POST /api/applications`. This is
 a server-to-server endpoint and requires the internal secret in either the

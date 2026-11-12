@@ -6,6 +6,7 @@ import { ClaimApplicationLink } from "@/components/applications/claim-applicatio
 import { getCurrentUser } from "@/lib/auth/session";
 import { canEditFamilyApplication } from "@/lib/applications/edit-policy";
 import { listFamilyApplications, type ApplicationTab } from "@/lib/applications/data";
+import { formatApplicationDate } from "@/lib/applications/date";
 import { familyFromSlug, familyLabel, familySlug } from "@/lib/applications/families";
 import { notFound, redirect } from "next/navigation";
 
@@ -14,10 +15,6 @@ const tabs: { label: string; value: ApplicationTab }[] = [
   { label: "На обзвоне", value: "call" },
   { label: "История", value: "history" },
 ];
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
 
 export default async function FamilyApplicationsPage({
   params,
@@ -72,9 +69,9 @@ export default async function FamilyApplicationsPage({
               <article key={application.id} className="londo-ui-surface ui-application-row flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-4">
                   {application.discordAvatar ? <Image src={application.discordAvatar} alt="" width={48} height={48} className="h-12 w-12 rounded-2xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-lg font-semibold">{application.discordDisplayName.slice(0, 1).toUpperCase()}</div>}
-                  <div className="min-w-0"><h2 className="truncate font-semibold text-white">{application.discordDisplayName}</h2><p className="truncate text-sm text-muted">@{application.discordUsername} · {formatDate(application.createdAt)}</p><div className="mt-2"><StatusBadge status={application.status} /></div></div>
+                  <div className="min-w-0"><h2 className="truncate font-semibold text-white">{application.discordDisplayName}</h2><p className="truncate text-sm text-muted">@{application.discordUsername} · {formatApplicationDate(application.createdAt)}</p><div className="mt-2"><StatusBadge status={application.status} /></div></div>
                 </div>
-                <ClaimApplicationLink id={application.id} family={slug} href={`/applications/${slug}/${application.id}`} claimed={Boolean(application.claimedByUserId && application.claimedByUserId !== user.id)} owned={application.claimedByUserId === user.id} />
+                <ClaimApplicationLink id={application.id} family={slug} href={`/applications/${slug}/${application.id}`} completed={application.status === "ACCEPTED" || application.status === "REJECTED"} claimed={Boolean(application.claimedByUserId && application.claimedByUserId !== user.id)} owned={application.claimedByUserId === user.id} />
               </article>
             ))}
           </div>

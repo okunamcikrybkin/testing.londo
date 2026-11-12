@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import type { SessionUser } from "@/lib/auth/session";
 import { canEditFamilyApplication, isEditableApplicationStatus } from "@/lib/applications/edit-policy";
-import { parseApplicationAnswers } from "@/lib/applications/answers";
+import { isValidDiscordApplicationNickname, parseApplicationAnswers } from "@/lib/applications/answers";
 import { isActiveApplicationConflict } from "@/lib/applications/intake";
 import { shopBot } from "@/lib/shop/bot";
 import { seal, unseal } from "./crypto";
@@ -25,6 +25,7 @@ export async function submitOnSite(user:SessionUser,family:unknown,input:unknown
  if(family!=="MEMPHIS")throw Error("Выберите сервер.");
  const answers=parseApplicationAnswers(input);if(!answers)throw Error("Проверьте ответы: все поля обязательны, возраст 16–99, ссылка http/https.");
  if(Array.from(answers.gameNickname).length>32)throw Error("Никнейм Discord из анкеты не должен превышать 32 символа.");
+ if(!isValidDiscordApplicationNickname(answers))throw Error("Игровой никнейм вместе со статиком должен занимать не более 32 символов.");
  const member=await membership(user.discordId);
  if(member!=="MEMBER")throw Error(member==="NOT_MEMBER"?"Для подачи заявки необходимо находиться на Discord-сервере LONDO.":"Проверка Discord временно недоступна. Это не означает, что вас нет на сервере. Попробуйте позже или сообщите администрации.");
  // Consent can be refused; this never blocks submitting the application itself.

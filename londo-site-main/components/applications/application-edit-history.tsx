@@ -1,4 +1,5 @@
 import { applicationAnswerLabels } from "@/lib/applications/edit-policy";
+import { formatApplicationDate } from "@/lib/applications/date";
 import type { Prisma } from "@prisma/client";
 
 type Entry = { id: string; createdAt: Date; metadata: Prisma.JsonValue; actor: { displayName: string } | null };
@@ -10,7 +11,7 @@ export function ApplicationEditHistory({ entries }: { entries: Entry[] }) {
       const changes = Array.isArray(metadata.changes) ? metadata.changes : [];
       return <li key={entry.id} className="border-l border-accent/40 pl-4">
         <p className="text-sm">{entry.actor?.displayName ?? (typeof metadata.editorDisplayName === "string" ? metadata.editorDisplayName : "Сотрудник")} изменил заявку</p>
-        <p className="mt-1 text-xs text-muted">{new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(entry.createdAt)}</p>
+        <p className="mt-1 text-xs text-muted">{formatApplicationDate(entry.createdAt)}</p>
         <dl className="mt-3 space-y-3">{changes.map((change, index) => {
           if (!change || typeof change !== "object" || Array.isArray(change) || typeof change.field !== "string" || !Object.hasOwn(applicationAnswerLabels, change.field)) return null;
           return <div key={index} className="break-words text-sm"><dt className="text-muted">{applicationAnswerLabels[change.field as keyof typeof applicationAnswerLabels]}</dt><dd className="mt-1 whitespace-pre-wrap"><span className="text-muted">{typeof change.before === "string" ? change.before : "—"}</span>{" → "}{typeof change.after === "string" ? change.after : "—"}</dd></div>;

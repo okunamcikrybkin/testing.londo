@@ -13,14 +13,12 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { canEditFamilyApplication, isEditableApplicationStatus } from "@/lib/applications/edit-policy";
 import { parseApplicationAnswers } from "@/lib/applications/answers";
 import { getApplicantApplicationHistory, getApplicationAuditTrail, getFamilyApplication } from "@/lib/applications/data";
+import { formatApplicationDate } from "@/lib/applications/date";
 import { familyFromSlug, familyLabel, familySlug } from "@/lib/applications/families";
 import { notFound, redirect } from "next/navigation";
 
-function formatDate(date: Date | null): string {
-  return date ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date) : "—";
-}
-
 const auditLabels: Record<string, string> = {
+  APPLICATION_CLAIMED: "Заявка взята в работу",
   APPLICATION_EDITED: "Ответы отредактированы",
   APPLICATION_ACCEPTED: "Заявка принята",
   APPLICATION_CALL_STARTED: "Начат обзвон",
@@ -63,6 +61,7 @@ export default async function ApplicationDetailsPage({
   ]);
   const slug = familySlug(family);
   const answers = parseApplicationAnswers(application.answers);
+  const claimEvent = auditTrail.find((entry) => entry.action === "APPLICATION_CLAIMED");
 
   return (
     <div className="londo-page min-h-screen">
@@ -82,7 +81,7 @@ export default async function ApplicationDetailsPage({
             <StatusBadge status={application.status} />
           </div>
 
-          <dl className="mt-8 grid gap-3 sm:grid-cols-2"><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Discord ID</dt><dd className="mt-1 break-all text-sm text-white">{application.discordUserId}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Дата подачи</dt><dd className="mt-1 text-sm text-white">{formatDate(application.createdAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Начало обзвона</dt><dd className="mt-1 text-sm text-white">{formatDate(application.callStartedAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Завершение</dt><dd className="mt-1 text-sm text-white">{formatDate(application.completedAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Рассмотрел</dt><dd className="mt-1 text-sm text-white">{application.reviewedBy ? application.reviewedBy.displayName : "—"}</dd></div></dl>
+          <dl className="mt-8 grid gap-3 sm:grid-cols-2"><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Discord ID</dt><dd className="mt-1 break-all text-sm text-white">{application.discordUserId}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Дата подачи</dt><dd className="mt-1 text-sm text-white">{formatApplicationDate(application.createdAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Начало обзвона</dt><dd className="mt-1 text-sm text-white">{formatApplicationDate(application.callStartedAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Завершение</dt><dd className="mt-1 text-sm text-white">{formatApplicationDate(application.completedAt)}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Рассмотрел</dt><dd className="mt-1 text-sm text-white">{application.reviewedBy ? application.reviewedBy.displayName : "—"}</dd></div><div className="londo-ui-section p-4"><dt className="text-xs text-muted">Взял в работу</dt><dd className="mt-1 text-sm text-white">{claimEvent?.actor?.displayName ?? application.claimedBy?.displayName ?? "—"}</dd><dd className="mt-1 text-xs text-muted">{formatApplicationDate(claimEvent?.createdAt ?? application.claimedAt)}</dd></div></dl>
 
           {application.rejectionReason ? <section className="mt-5 rounded-2xl border border-rose-300/15 bg-rose-300/[0.05] p-4"><h2 className="text-sm font-medium text-rose-100">Причина отклонения</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-rose-100/80">{application.rejectionReason}</p></section> : null}
           {canManageApplications(user, family) ? <ApplicationActions applicationId={application.id} family={slug} status={application.status} claimedByUserId={application.claimedByUserId} currentUserId={user.id} claimedByName={application.claimedBy?.displayName} /> : null}
@@ -93,7 +92,7 @@ export default async function ApplicationDetailsPage({
         <section className="londo-ui-surface mt-5 p-5 sm:p-7"><h2 className="text-xl font-semibold text-white">Ответы анкеты</h2>{answers ? <dl className="mt-5 divide-y divide-white/10 rounded-2xl border border-white/10"><div className="px-4 py-4"><dt className="text-sm text-muted">Игровой никнейм | Статик</dt><dd className="mt-1 text-sm text-white">{answers.gameNicknameStatic}</dd></div><div className="px-4 py-4"><dt className="text-sm text-muted">Возраст OOC</dt><dd className="mt-1 text-sm text-white">{answers.oocAge}</dd></div><div className="px-4 py-4"><dt className="text-sm text-muted">Цель вступления</dt><dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-white">{answers.joinReason}</dd></div><div className="px-4 py-4"><dt className="text-sm text-muted">Как узнали о семье</dt><dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-white">{answers.discoverySource}</dd></div><div className="px-4 py-4"><dt className="text-sm text-muted">Скрин персонажей</dt><dd className="mt-1 text-sm"><a href={answers.charactersScreenshotUrl} target="_blank" rel="noopener noreferrer" className="break-all text-accent-soft hover:text-white">Открыть скрин персонажей</a></dd></div></dl> : <p className="londo-ui-section mt-4 p-4 text-sm text-muted">Заявка содержит устаревший формат ответов.</p>}</section>
         <ApplicationEditHistory entries={auditTrail.filter(entry => entry.action === "APPLICATION_EDITED")} />
         <ApplicantHistory entries={applicantHistory} />
-        <section className="londo-ui-surface mt-5 p-5 sm:p-7"><h2 className="text-xl font-semibold text-white">История действий</h2><ol className="mt-5 space-y-4">{auditTrail.length ? auditTrail.map((entry) => <li key={entry.id} className="border-l border-accent/40 pl-4"><p className="text-sm text-white">{auditLabel(entry.action)}</p><p className="mt-1 text-xs text-muted">{formatDate(entry.createdAt)}{entry.actor ? ` · ${entry.actor.displayName}` : ""}</p></li>) : <li className="text-sm text-muted">Действий пока нет.</li>}</ol></section>
+        <section className="londo-ui-surface mt-5 p-5 sm:p-7"><h2 className="text-xl font-semibold text-white">История действий</h2><ol className="mt-5 space-y-4">{auditTrail.length ? auditTrail.map((entry) => <li key={entry.id} className="border-l border-accent/40 pl-4"><p className="text-sm text-white">{auditLabel(entry.action)}</p><p className="mt-1 text-xs text-muted">{formatApplicationDate(entry.createdAt)}{entry.actor ? ` · ${entry.actor.displayName}` : ""}</p></li>) : <li className="text-sm text-muted">Действий пока нет.</li>}</ol></section>
       </main>
     </div>
   );
