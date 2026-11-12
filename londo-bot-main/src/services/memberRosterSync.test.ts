@@ -16,8 +16,8 @@ test("member sync projects independent active and inactive family memberships", 
   const payload = getMemberRosterSync(member(), roles);
   assert.equal(payload.gameNickname, "Vafelion");
   assert.equal(payload.staticId, "566");
-  assert.deepEqual(payload.memberships.map(({ active, family }) => ({ active, family })), [{ active: true, family: "MEMPHIS" }, { active: true, family: "PHOENIX" }]);
-  assert.deepEqual(getMemberRosterSync(member("926534588023590922", ["mem"]), roles).memberships.map(({ active }) => active), [false, false]);
+  assert.deepEqual(payload.memberships.map(({ active, family }) => ({ active, family })), [{ active: true, family: "MEMPHIS" }]);
+  assert.deepEqual(getMemberRosterSync(member("926534588023590922", ["mem"]), roles).memberships.map(({ active }) => active), [false]);
 });
 
 test("member sync retries a temporary site failure with one stable payload", async () => {
@@ -29,7 +29,7 @@ test("member sync retries a temporary site failure with one stable payload", asy
   });
   assert.equal(result, true);
   assert.equal(attempts, 3);
-  assert.equal(JSON.parse(body).memberships.length, 2);
+  assert.equal(JSON.parse(body).memberships.length, 1);
 });
 
 test("member updates within the debounce window produce one final sync", async () => {

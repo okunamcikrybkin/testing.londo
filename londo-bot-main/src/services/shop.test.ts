@@ -27,7 +27,7 @@ test("uncertain Discord failure remains pending for retry rather than refunding 
 
 test("shop internal endpoints reject missing and incorrect shared secrets",async()=>{
  const {startApplicationServer}=await import("./applicationServer.js");
- const server=startApplicationServer({} as Guild,{applicationChannelId:"",callCategoryId:"",port:0,staffRoleIds:{MEMPHIS:[],PHOENIX:[]},acceptRoleIds:{MEMPHIS:[],PHOENIX:[]}},{fam:"1",memphis:"2",phoenix:"3"},"test-only-secret");
+ const server=startApplicationServer({} as Guild,{applicationChannelId:"",callCategoryId:"",port:0,staffRoleIds:{MEMPHIS:[]},acceptRoleIds:{MEMPHIS:[]}},{fam:"1",memphis:"2"},"test-only-secret");
  await once(server,"listening");const address=server.address();if(!address||typeof address==="string")throw Error("No address");
  try {for(const [method,path] of [["GET","options"],["POST","refresh"],["POST","role-check"]])for(const secret of ["","incorrect"]){const response: Response=await fetch("http://127.0.0.1:"+address.port+"/internal/discord/shop/"+path,{method,headers:{"x-londo-bot-secret":secret},...(method==="POST"?{body:"{}"}:{})});assert.equal(response.status,401);}}
  finally{await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));}

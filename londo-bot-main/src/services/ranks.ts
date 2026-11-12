@@ -11,6 +11,7 @@ function normalizedRoleName(value: string): string {
 
 /** Resolves a member's highest configured rank in one family scope. */
 export function resolveFamilyRank(member: GuildMember, family: Family): ResolvedFamilyRank | null {
+  if (family !== "MEMPHIS") return null;
   const scopedRanks = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family));
   const roles = [...member.roles.cache.values()];
   const matchingByName = scopedRanks.filter((rank) => roles.some((role) =>

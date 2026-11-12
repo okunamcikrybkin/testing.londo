@@ -1,8 +1,8 @@
 # Family Shop
 
-Management is available to existing OWNER/FULL_ACCESS users at /shop. MEMPHIS and PHOENIX have independent settings. Navigation already links to Shop. Create/edit uses /shop/items/new and /shop/items/[id]; ROLE maps to the existing DISCORD_ROLE enum. Existing item family is immutable to preserve purchase history.
+Management is available to existing OWNER/FULL_ACCESS users at /shop. Only MEMPHIS settings and items are active; legacy PHOENIX rows remain stored but are not used by active shop flows. Navigation already links to Shop. Create/edit uses /shop/items/new and /shop/items/[id]; ROLE maps to the existing DISCORD_ROLE enum. Existing item family is immutable to preserve purchase history.
 
-Settings and role/channel options: /shop/settings. Select a permitted text channel for each family. Role choices exclude everyone, managed/integration/bot roles and roles at/above the bot. The bot requires Manage Roles and its highest role must be above goods it assigns. It requires View Channel, Send Messages and Read Message History in the selected text channel.
+Settings and role/channel options: /shop/settings. Select a permitted Memphis text channel. Role choices exclude everyone, managed/integration/bot roles and roles at/above the bot. The bot requires Manage Roles and its highest role must be above goods it assigns. It requires View Channel, Send Messages and Read Message History in the selected text channel.
 
 Site configuration reuses LONDO_BOT_INTERNAL_URL and LONDO_BOT_API_SECRET. Bot configuration reuses LONDO_SITE_URL and LONDO_BOT_API_SECRET. Never put these secrets into browser code. Restart both processes after installation.
 

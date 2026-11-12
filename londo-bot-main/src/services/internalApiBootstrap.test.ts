@@ -5,8 +5,8 @@ import type { Guild } from "discord.js";
 import { bootstrapInternalApi } from "./internalApiBootstrap.js";
 import type { ApplicationConfig, FamilyRoleIds } from "../types/family.js";
 
-const config: ApplicationConfig = { applicationChannelId: "channel", callCategoryId: "category", port: 3101, staffRoleIds: { MEMPHIS: [], PHOENIX: [] }, acceptRoleIds: { MEMPHIS: [], PHOENIX: [] } };
-const roles: FamilyRoleIds = { fam: "fam", memphis: "memphis", phoenix: "phoenix" };
+const config: ApplicationConfig = { applicationChannelId: "channel", callCategoryId: "category", port: 3101, staffRoleIds: { MEMPHIS: [] }, acceptRoleIds: { MEMPHIS: [] } };
+const roles: FamilyRoleIds = { fam: "fam", memphis: "memphis" };
 
 test("bootstrap starts the internal API with the configured local port and shared secret", () => {
   let received: { guild: Guild; config: ApplicationConfig; roles: FamilyRoleIds; secret: string } | null = null;

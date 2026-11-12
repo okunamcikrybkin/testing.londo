@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db/prisma";
-import type { Family } from "@prisma/client";
 export type DiscordOptions = { channels: { id: string; name: string }[]; roles: { id: string; name: string; position: number }[] };
 export async function shopBot<T>(path: string, body?: object): Promise<T> {
   const base = process.env.LONDO_BOT_INTERNAL_URL;
@@ -10,7 +9,7 @@ export async function shopBot<T>(path: string, body?: object): Promise<T> {
   return response.json() as Promise<T>;
 }
 export function discordOptions() { return shopBot<DiscordOptions>("/internal/discord/shop/options"); }
-export async function refreshShop(family: Family) {
+export async function refreshShop(family: "MEMPHIS") {
   try { await shopBot("/internal/discord/shop/refresh", { family }); await prisma.auditLog.create({ data: { action: "SHOP_PANEL_REFRESHED", targetType: "FamilyShopSettings", targetId: family } }); return null; }
   catch { return "Изменения сохранены. Discord-магазин не обновлён; повторите обновление после запуска bot."; }
 }

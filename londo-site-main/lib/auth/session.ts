@@ -18,7 +18,7 @@ export type SessionUser = {
   username: string;
   displayName: string;
   avatarUrl: string | null;
-  famqFamilies?: ("MEMPHIS" | "PHOENIX")[];
+  famqFamilies?: "MEMPHIS"[];
   baseFamilyAccess?: {MEMPHIS:"USER"|"FAMQ";PHOENIX:"USER"|"FAMQ"};
   familyAccess?: { MEMPHIS: UserRole; PHOENIX: UserRole };
   accessObservedAt?: Date | null;

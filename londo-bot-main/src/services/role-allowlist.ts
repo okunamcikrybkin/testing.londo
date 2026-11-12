@@ -16,9 +16,9 @@ function rankId(key: typeof shared[number][0]): string {
 }
 
 export function promotionRoleAllowlist(family: unknown): readonly { roleId: string; order: number }[] {
-  if (family !== "MEMPHIS" && family !== "PHOENIX") return [];
-  const recruitId = family === "MEMPHIS" ? rankIds.get("MEMPHIS_RECRUIT") : process.env.PHOENIX_RECRUIT_ROLE_ID?.trim();
-  if (!recruitId || !/^\d{17,20}$/.test(recruitId)) throw new Error(`Missing or invalid configured Recruit role for ${family}.`);
+  if (family !== "MEMPHIS") return [];
+  const recruitId = rankIds.get("MEMPHIS_RECRUIT");
+  if (!recruitId || !/^\d{17,20}$/.test(recruitId)) throw new Error("Missing or invalid configured Recruit role for MEMPHIS.");
   return [
     ...shared.slice(0, 3).map(([key, order]) => ({ roleId: rankId(key), order })),
     { roleId: recruitId, order: 5 },

@@ -116,7 +116,7 @@ export async function resetStaffPin(sessionId: string, userId: string) {
 export async function setupStaffPin(sessionId: string, pin: unknown, confirmation: unknown) {
   if (!validPin(pin) || pin !== confirmation) throw new AccessError("Введите ровно 4 цифры и одинаковое подтверждение.");
   return transaction(sessionId, null, async (tx, actor) => {
-    if (!actor.user.staffAccessGrants.length) throw new AccessError("Сначала получите одобрение доступа.", 403);
+    if (!actor.user.staffAccessGrants.some(grant => grant.memphisRole !== "USER")) throw new AccessError("Сначала получите одобрение доступа.", 403);
     if (actor.user.staffAccessCredential?.pinHash) throw new AccessError("Защитный код уже настроен. Подтвердите его.", 409);
     const now = new Date(), pinHash = await hashPin(pin);
     const credential = await tx.staffAccessCredential.upsert({ where: { userId: actor.userId }, create: { userId: actor.userId, pinHash, pinSetAt: now }, update: { pinHash, pinSetAt: now, failedAttempts: 0, lockedUntil: null } });
@@ -128,7 +128,7 @@ export async function setupStaffPin(sessionId: string, pin: unknown, confirmatio
 export async function verifyStaffPin(sessionId: string, pin: unknown) {
   return transaction(sessionId, null, async (tx, actor) => {
     const credential = actor.user.staffAccessCredential;
-    if (!actor.user.staffAccessGrants.length || !credential?.pinHash) throw new AccessError("Настройте защитный код после одобрения доступа.", 403);
+    if (!actor.user.staffAccessGrants.some(grant => grant.memphisRole !== "USER") || !credential?.pinHash) throw new AccessError("Настройте защитный код после одобрения доступа.", 403);
     const now = new Date();
     if (credential.lockedUntil && credential.lockedUntil > now) return { error: "Слишком много попыток. Попробуйте через 15 минут.", status: 429 };
     if (!validPin(pin) || !await verifyPinHash(pin, credential.pinHash)) {

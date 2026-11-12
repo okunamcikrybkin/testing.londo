@@ -10,16 +10,16 @@ import { loadSiteLogConfig } from "../config/siteLogs.js";
 import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { DiscordAPIError, ChannelType, EmbedBuilder, escapeMarkdown, PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
-import type { ApplicationConfig, Family, FamilyRoleIds } from "../types/family.js";
+import type { ActiveFamily, ApplicationConfig, Family, FamilyRoleIds } from "../types/family.js";
 import { describeDiscordError, logError, logInfo } from "../utils/logger.js";
 import { nicknameGuard } from "./nicknameGuard.js";
 import type { GiveawayManager, GiveawayPayload } from "./giveaways.js";
 
-type Application = { id: string; family: Family; discordUserId: string; discordUsername: string; discordDisplayName: string; discordTextChannelId: string | null; discordVoiceChannelId: string | null; gameNicknameStatic?: string | null; gameNickname?: string | null; staticId?: string | null; rejectionReason?: string; answers?: { gameNicknameStatic?: string; gameNickname?: string; staticId?: string; oocAge: string; joinReason: string; discoverySource: string; charactersScreenshotUrl: string } | null; submittedAt?: string; reviewer?: { discordId: string; displayName: string } };
+type Application = { id: string; family: ActiveFamily; discordUserId: string; discordUsername: string; discordDisplayName: string; discordTextChannelId: string | null; discordVoiceChannelId: string | null; gameNicknameStatic?: string | null; gameNickname?: string | null; staticId?: string | null; rejectionReason?: string; answers?: { gameNicknameStatic?: string; gameNickname?: string; staticId?: string; oocAge: string; joinReason: string; discoverySource: string; charactersScreenshotUrl: string } | null; submittedAt?: string; reviewer?: { discordId: string; displayName: string } };
 type RequestBody = { application?: Application };
 type ApplicationOperation = "call" | "accept" | "reject";
 export type ApplicationServerEvent = { application: Application; type: "APPLICATION_CALL_STARTED" | "APPLICATION_ACCEPTED" | "APPLICATION_REJECTED"; channelId?: string };
-function isFamily(value: unknown): value is Family { return value === "MEMPHIS"; }
+function isFamily(value: unknown): value is ActiveFamily { return value === "MEMPHIS"; }
 type ValidationIssue = { field: string; expected: string; kind: "missing" | "invalid" };
 type ApplicationValidation = { ok: true; application: Application } | { ok: false; issues: ValidationIssue[] };
 
@@ -43,7 +43,7 @@ function validAccessNotification(body: Record<string, unknown>): boolean {
   return typeof body.discordId === "string" && /^\d{17,20}$/.test(body.discordId)
     && isAccessRole(body.requestedRole)
     && isAccessRole(body.memphisRole)
-    && isAccessRole(body.phoenixRole)
+    && body.phoenixRole === "USER"
     && typeof body.displayName === "string" && body.displayName.length <= 100
     && typeof body.username === "string" && body.username.length <= 100
     && (body.requestId === undefined || (typeof body.requestId === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(body.requestId)));
@@ -113,7 +113,10 @@ export function isValidRejectionReason(reason: string | undefined): boolean {
 }
 export function isExpectedTextChannel(channel: { topic?: string | null; type: ChannelType }, applicationId: string): boolean { return channel.type === ChannelType.GuildText && channel.topic === `londo-application:${applicationId}`; }
 export function isExpectedVoiceChannel(channel: { parentId?: string | null; permissionOverwrites?: { cache: { has(id: string): boolean } }; type: ChannelType }, categoryId: string, applicantId: string): boolean { return channel.type === ChannelType.GuildVoice && channel.parentId === categoryId && channel.permissionOverwrites?.cache.has(applicantId) === true; }
-export function acceptRoleIdsForFamily(family: Family, roleIds: FamilyRoleIds, additional: string[]): string[] { const familyRole = family === "MEMPHIS" ? roleIds.memphis : roleIds.phoenix; return [...new Set([roleIds.fam, familyRole, ...additional])]; }
+export function acceptRoleIdsForFamily(family: ActiveFamily, roleIds: FamilyRoleIds, additional: string[]): string[] {
+  if (family !== "MEMPHIS") throw new Error("FAMILY_UNAVAILABLE");
+  return [...new Set([roleIds.fam, roleIds.memphis, ...additional])];
+}
 
 export async function applyAcceptedApplicationChanges(member: Pick<GuildMember, "id" | "roles" | "setNickname">, roles: Role[], nickname: string): Promise<void> {
   const addedRoleIds: string[] = [];
@@ -164,7 +167,7 @@ async function startCall(guild: Guild, config: ApplicationConfig, app: Applicati
     const answers = app.answers;
     const date = app.submittedAt ? `<t:${Math.floor(new Date(app.submittedAt).getTime() / 1000)}:f>` : "Не указана";
     const reviewerMention = app.reviewer?.discordId ? `<@${app.reviewer.discordId}>` : "Не указан";
-    const embed = new EmbedBuilder().setColor(app.family === "MEMPHIS" ? 0x2dd4bf : 0xf97316).setTitle(`Заявка в семью ${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}`).setDescription(`**Кандидат:** <@${app.discordUserId}> (${app.discordUsername})\n**Подана:** ${date}\n\n**Игровой никнейм | Статик**\n${answers?.gameNicknameStatic ?? app.gameNicknameStatic ?? "Не указан"}\n\n**Возраст (OOC)**\n${answers?.oocAge ?? "Не указан"}\n\n**Как узнали о семье**\n${answers?.discoverySource ?? "Не указан"}\n\n**Цель вступления в семью**\n${answers?.joinReason ?? "Не указана"}\n\n**Скрин персонажей**\n${answers?.charactersScreenshotUrl ? `[Открыть скриншот](${answers.charactersScreenshotUrl})` : "Не приложен"}\n\n**Статус**\nНа обзвоне у ${reviewerMention}`).setFooter({ text: `Заявка ${app.id}` });
+    const embed = new EmbedBuilder().setColor(0x2dd4bf).setTitle("Заявка в семью Memphis").setDescription(`**Кандидат:** <@${app.discordUserId}> (${app.discordUsername})\n**Подана:** ${date}\n\n**Игровой никнейм | Статик**\n${answers?.gameNicknameStatic ?? app.gameNicknameStatic ?? "Не указан"}\n\n**Возраст (OOC)**\n${answers?.oocAge ?? "Не указан"}\n\n**Как узнали о семье**\n${answers?.discoverySource ?? "Не указано"}\n\n**Цель вступления в семью**\n${answers?.joinReason ?? "Не указана"}\n\n**Скрин персонажей**\n${answers?.charactersScreenshotUrl ? `[Открыть скриншот](${answers.charactersScreenshotUrl})` : "Не приложен"}\n\n**Статус**\nНа обзвоне у ${reviewerMention}`).setFooter({ text: `Заявка ${app.id}` });
     if (answers?.charactersScreenshotUrl) embed.setThumbnail(answers.charactersScreenshotUrl);
     await text.send({
       content: `<@${app.discordUserId}>, привет!\n\nЭто твой личный канал для рассмотрения заявки в семью.\nНа данный момент твоей заявкой занимается ${reviewerMention}.\nПожалуйста, ожидай дальнейшей связи здесь или в голосовом канале обзвона <#${voice.id}>.`,
@@ -205,9 +208,9 @@ async function sendApplicantDm(guild: Guild, app: Application, type: "CALL" | "A
 }
 
 export function createApplicantNotification(app: Application, type: "CALL" | "ACCEPTED" | "REJECTED"): EmbedBuilder {
-    const familyName = app.family === "MEMPHIS" ? "Memphis" : "Phoenix";
+    const familyName = "Memphis";
     const reviewer = app.reviewer?.discordId ? `<@${app.reviewer.discordId}>` : app.reviewer?.displayName ?? "рекрутер";
-    const embed = new EmbedBuilder().setColor(type === "REJECTED" ? 0xef4444 : type === "ACCEPTED" ? 0x22c55e : app.family === "MEMPHIS" ? 0x2dd4bf : 0xf97316);
+    const embed = new EmbedBuilder().setColor(type === "REJECTED" ? 0xef4444 : type === "ACCEPTED" ? 0x22c55e : 0x2dd4bf);
     if (type !== "REJECTED") embed.setFooter({ text: `Заявка ${app.id}` });
     if (type === "CALL") {
       embed.setTitle("Вас пригласили на собеседование").setDescription(`Здравствуйте, ${app.discordDisplayName}.\n\n${reviewer} пригласил вас на собеседование в семью **${familyName}**. Чтобы присоединиться, откройте каналы ниже.`).addFields({ name: "Текстовый канал", value: app.discordTextChannelId ? `<#${app.discordTextChannelId}>` : "Недоступен", inline: true }, { name: "Голосовой канал", value: app.discordVoiceChannelId ? `<#${app.discordVoiceChannelId}>` : "Недоступен", inline: true });
@@ -301,7 +304,7 @@ async function reject(guild: Guild, config: ApplicationConfig, app: Application)
   const reason = app.rejectionReason?.trim();
   if (!isValidRejectionReason(reason)) throw new Error("INVALID_REJECTION_REASON");
   if (app.discordTextChannelId) {
-    try { const channel = await guild.channels.fetch(app.discordTextChannelId); if (channel?.isTextBased() && channel.isSendable() && isExpectedTextChannel(channel, app.id)) await channel.send({ embeds: [new EmbedBuilder().setColor(0xef4444).setTitle("Решение по вашей анкете").setDescription(`Мы рассмотрели вашу анкету в семью ${app.family === "MEMPHIS" ? "Memphis" : "Phoenix"}. К сожалению, сейчас мы не готовы принять вас.\n\n**Комментарий рекрутера**\n${reason}\n\nСпасибо за интерес к LONDO.`)] }); } catch (error) { if (!channelMissing(error)) throw new CleanupError(permissionError(error) ? "MISSING_PERMISSIONS" : "CHANNEL_FETCH_FAILED"); }
+    try { const channel = await guild.channels.fetch(app.discordTextChannelId); if (channel?.isTextBased() && channel.isSendable() && isExpectedTextChannel(channel, app.id)) await channel.send({ embeds: [new EmbedBuilder().setColor(0xef4444).setTitle("Решение по вашей анкете").setDescription(`Мы рассмотрели вашу анкету в семью Memphis. К сожалению, сейчас мы не готовы принять вас.\n\n**Комментарий рекрутера**\n${reason}\n\nСпасибо за интерес к LONDO.`)] }); } catch (error) { if (!channelMissing(error)) throw new CleanupError(permissionError(error) ? "MISSING_PERMISSIONS" : "CHANNEL_FETCH_FAILED"); }
   }
   const cleanup = await cleanupDiscordApplicationChannels(guild, config, app); logInfo("Application rejected successfully."); return cleanup;
 }

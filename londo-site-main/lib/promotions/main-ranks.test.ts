@@ -17,7 +17,7 @@ for(const family of ["MEMPHIS"] as const){
 }
 test("wrong-family target cannot trigger cleanup; configured positions are preserved",()=>{
  assert.deepEqual(mainRankCleanup("PHOENIX",process.env.MEMPHIS_RECRUIT_ROLE_ID!,false),[]);
- assert.deepEqual(mainRankCleanup("MEMPHIS",process.env.PHOENIX_RECRUIT_ROLE_ID!,false),[]);
+ assert.deepEqual(mainRankCleanup("MEMPHIS","legacy-family-role",false),[]);
  assert.deepEqual(mainRankCleanup("MEMPHIS","staff",false),[]);
  const position=FAMILY_RANKS.find(rank=>rank.key==="BABY_LONDO")!.roleId;
  assert.ok(!mainRankCleanup("MEMPHIS",process.env.MAIN_ROLE_ID!,false,[position]).includes(position));

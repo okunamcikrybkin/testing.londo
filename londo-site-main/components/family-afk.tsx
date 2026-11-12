@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { Family } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { AfkActions } from "@/components/afk-actions";
@@ -15,7 +14,7 @@ const afkStatusLabels: Record<string, string> = {
 };
 const date = (value: Date | null) => value ? `${value.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК)` : "—";
 
-export async function FamilyAfk({ family, query }: { family: Family; query: { tab?: string; status?: string; user?: string } }) {
+export async function FamilyAfk({ family, query }: { family: "MEMPHIS"; query: { tab?: string; status?: string; user?: string } }) {
   const user = await getAfkStaffUser(family);
   if (!user) redirect("/dashboard");
 

@@ -55,8 +55,8 @@ test("ordinary ranks trigger FAMQ sync while service roles are filtered", () => 
   assert.deepEqual(observeAccess({ id: member.discordId, roles: { cache: new Map(ids.map(id => [id, {}])) } } as unknown as GuildMember, "ROLE_UPDATE").roleIds, ids.slice(0,-1));
 });
 
-test("configured FAM and both membership roles trigger grant/revoke and survive snapshot filtering",()=>{
- const values={FAM_ROLE_ID:process.env.FAM_ROLE_ID!,MEMPHIS_ROLE_ID:process.env.MEMPHIS_ROLE_ID!,PHOENIX_ROLE_ID:process.env.PHOENIX_ROLE_ID!};
+test("configured FAM and Memphis membership roles trigger grant/revoke and survive snapshot filtering",()=>{
+ const values={FAM_ROLE_ID:process.env.FAM_ROLE_ID!,MEMPHIS_ROLE_ID:process.env.MEMPHIS_ROLE_ID!};
  const previous=Object.fromEntries(Object.keys(values).map(key=>[key,process.env[key]]));
  try{Object.assign(process.env,values);
   for(const roleId of Object.values(values)){

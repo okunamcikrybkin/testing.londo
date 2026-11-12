@@ -10,11 +10,14 @@ export async function buyItem(itemId: string, discordUserId: string, interaction
     const previous = await tx.economyTransaction.findUnique({ where: { sourceId: "shop-buy:" + interactionId } });
     if (previous) {
       const metadata = previous.metadata as { purchaseId: string };
-      return tx.shopPurchase.findUniqueOrThrow({ where: { id: metadata.purchaseId } });
+      const purchase = await tx.shopPurchase.findUniqueOrThrow({ where: { id: metadata.purchaseId } });
+      if (purchase.family !== "MEMPHIS") throw new Error("ITEM_UNAVAILABLE");
+      return purchase;
     }
     // Lock catalog state so closing/editing a shop cannot race the debit.
     const item = await tx.shopItem.findUnique({ where: { id: itemId } });
     if (!item) throw new Error("ITEM_UNAVAILABLE");
+    if (item.family !== "MEMPHIS") throw new Error("ITEM_UNAVAILABLE");
     await tx.$queryRaw(Prisma.sql`SELECT id FROM family_shop_settings WHERE family = ${item.family}::"Family" FOR SHARE`);
     await tx.$queryRaw(Prisma.sql`SELECT id FROM shop_items WHERE id = ${itemId} FOR SHARE`);
     const current = await tx.shopItem.findUniqueOrThrow({ where: { id: itemId }, include: { settings: true } });
@@ -43,6 +46,7 @@ export async function buyItem(itemId: string, discordUserId: string, interaction
 export async function settlePurchase(id: string, refund: boolean, actorId: string | null = null, role = false, db = prisma) {
   return db.$transaction(async tx => {
     const existing = await tx.shopPurchase.findUniqueOrThrow({ where: { id } });
+    if (existing.family !== "MEMPHIS") throw new Error("PURCHASE_UNAVAILABLE");
     await tx.$queryRaw(Prisma.sql`SELECT discord_user_id FROM voice_profiles WHERE discord_user_id = ${existing.discordUserId} FOR UPDATE`);
     // Claim the state before touching balance: a second refund sees zero matching rows.
     const claimed = await tx.shopPurchase.updateMany({ where: { id, status: "PENDING_FULFILLMENT", type: role ? "DISCORD_ROLE" : "MANUAL" }, data: { status: refund ? "REFUNDED" : "COMPLETED", ...(refund ? { refundedAt: new Date() } : { completedAt: new Date() }), fulfilledById: actorId } });

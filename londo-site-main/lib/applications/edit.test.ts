@@ -53,9 +53,13 @@ for (const family of ["MEMPHIS", "PHOENIX"] as const) {
     await assert.rejects(editApplicationInTransaction(f.tx, actor, family, "app", changed));
     assert.equal(f.writes(), 0);
   });
-  test(`FULL_ACCESS edits ${family} without PIN`, async () => {
+  test(`FULL_ACCESS can only edit active Memphis applications`, async () => {
     const f = fixture("NEW", family);
-    assert.equal((await editApplicationInTransaction(f.tx, { ...user, effectiveAccess: "FULL_ACCESS", pinVerified: false }, family, "app", changed)).changed, true);
+    if (family === "MEMPHIS") {
+      assert.equal((await editApplicationInTransaction(f.tx, { ...user, effectiveAccess: "FULL_ACCESS", pinVerified: false }, family, "app", changed)).changed, true);
+    } else {
+      await assert.rejects(editApplicationInTransaction(f.tx, { ...user, effectiveAccess: "FULL_ACCESS", pinVerified: false }, family, "app", changed));
+    }
   });
 }
 for (const status of ["ACCEPTED", "REJECTED"]) test(`${status} immutable`, async () => {

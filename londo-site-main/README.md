@@ -108,13 +108,14 @@ The production Redirect URI must use the HTTPS origin configured by
 
 ## Family Applications
 
-`/applications` is a staff workspace for the separate `MEMPHIS` and `PHOENIX`
-application streams. Only `MODERATOR`, `ADMIN`, and `OWNER` roles can access
+`/applications` is a staff workspace for the active `MEMPHIS` application
+stream. Legacy PHOENIX records remain stored but are not used by active flows.
+Only `MODERATOR`, `ADMIN`, and `OWNER` roles can access
 lists, details, and mutation actions; these checks run on the server.
 
 Each application progresses through `NEW`, `CALL`, `ACCEPTED`, or `REJECTED`.
-The same Discord user can have only one active (`NEW` or `CALL`) application in
-each family. Completed applications remain in history. Application times in
+The same Discord user can have only one active (`NEW` or `CALL`) application.
+Completed applications remain in history. Application times in
 the staff workspace are shown in Moscow time. The game nickname and static,
 combined as `nickname | static`, must fit Discord's 32-character nickname
 limit so the bot can approve the application.
@@ -138,8 +139,8 @@ Example development payload shape:
 ```
 
 Before staff can start calls or accept applications, configure these values in
-`.env.local`: `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, the chosen family's
-application category ID, staff role IDs, and accepted-member role IDs. The app
+`.env.local`: `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, Memphis application
+category ID, staff role IDs, and accepted-member role IDs. The app
 returns a safe configuration error instead of changing a status if they are
 missing.
 
@@ -151,9 +152,9 @@ verifies every request with `DISCORD_APPLICATION_PUBLIC_KEY` before it reads the
 interaction payload.
 
 The bot integration can publish the entry message with **📨 Подать заявку**.
-The interaction flow is: entry button → family choice (`MEMPHIS` or `PHOENIX`)
-→ Discord modal → trusted application intake. The selected family comes from a
-verified interaction custom ID, not from user-provided form data.
+The interaction flow is: entry button → Memphis application → Discord modal
+→ trusted application intake. The selected family comes from a verified
+interaction custom ID, not from user-provided form data.
 
 The modal stores these stable JSON keys in `FamilyApplication.answers`:
 

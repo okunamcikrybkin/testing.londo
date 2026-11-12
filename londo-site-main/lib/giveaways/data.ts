@@ -65,10 +65,10 @@ type FinishSource = { source: "AUTO" } | { source: "MANUAL"; actorUserId: string
 export async function finishGiveaway(id: string, source: FinishSource = { source: "AUTO" }): Promise<{ giveaway: GiveawayWithRelations; finished: boolean }> {
   return prisma.$transaction(async (tx) => {
     const transitioned = await tx.giveaway.updateMany({
-      where: { id, status: "ACTIVE", ...(source.source === "AUTO" ? { endsAt: { lte: new Date() } } : {}) },
+      where: { id, family: { in: ["MEMPHIS", "ALL"] }, status: "ACTIVE", ...(source.source === "AUTO" ? { endsAt: { lte: new Date() } } : {}) },
       data: { endedAt: new Date(), status: "ENDED" },
     });
-    const current = await tx.giveaway.findUnique({ where: { id }, include: giveawayInclude });
+    const current = await tx.giveaway.findFirst({ where: { id, family: { in: ["MEMPHIS", "ALL"] } }, include: giveawayInclude });
     if (!current) throw new Error("NOT_FOUND");
     if (transitioned.count !== 1) return { giveaway: current, finished: false };
     const winners = selectWinners(current.participants.map((entry) => entry.discordUserId), current.winnerCount);
@@ -82,7 +82,7 @@ export async function finishGiveaway(id: string, source: FinishSource = { source
 
 export async function rerollGiveaway(id: string, position: number, actorUserId: string): Promise<GiveawayWithRelations> {
   return prisma.$transaction(async (tx) => {
-    const giveaway = await tx.giveaway.findUnique({ where: { id }, include: giveawayInclude });
+    const giveaway = await tx.giveaway.findFirst({ where: { id, family: { in: ["MEMPHIS", "ALL"] } }, include: giveawayInclude });
     if (!giveaway) throw new Error("NOT_FOUND");
     if (giveaway.status !== "ENDED") throw new Error("INVALID_STATE");
     const previous = giveaway.winners.find((winner) => winner.position === position && !winner.isRerolled);
@@ -98,7 +98,7 @@ export async function rerollGiveaway(id: string, position: number, actorUserId: 
   });
 }
 
-export function isFamilyEligible(family: GiveawayFamily, roles: { fam: string; memphis: string; phoenix: string }, roleIds: Set<string>): boolean {
+export function isFamilyEligible(family: GiveawayFamily, roles: { fam: string; memphis: string }, roleIds: Set<string>): boolean {
   if (!roleIds.has(roles.fam)) return false;
   if (family === "MEMPHIS") return roleIds.has(roles.memphis);
   if (family === "PHOENIX") return false;

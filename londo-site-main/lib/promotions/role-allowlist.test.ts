@@ -4,7 +4,7 @@ import {FAMILY_RANKS} from "../rank-appearance/catalog";
 import {assertPromotionRoleAllowed,filterPromotionRoles,isPromotionRoleAllowed,promotionRoleAllowlist} from "./role-allowlist";
 
 const memphis=promotionRoleAllowlist("MEMPHIS").map(role=>role.roleId);
-const unavailableRole=process.env.PHOENIX_RECRUIT_ROLE_ID!;
+const unavailableRole="legacy-family-role";
 test("promotion role allowlist uses configured IDs and the established order",()=>{
  assert.deepEqual(promotionRoleAllowlist("MEMPHIS").map(r=>r.roleId),memphis);assert.deepEqual(promotionRoleAllowlist("MEMPHIS").map(r=>r.order),[2,3,4,5,6,8]);for(const id of memphis)assert.doesNotThrow(()=>assertPromotionRoleAllowed("MEMPHIS",id));
 });

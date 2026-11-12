@@ -5,8 +5,8 @@ import { ChannelType, PermissionFlagsBits, type Guild, type GuildMember, type Ro
 import { accessRequestChannelId, acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, createApplicantNotification, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
 import type { ApplicationConfig } from "../types/family.js";
 
-const roles = { fam: "1", memphis: "2", phoenix: "3" };
-const apiConfig: ApplicationConfig = { applicationChannelId: "channel", callCategoryId: "category", port: 0, staffRoleIds: { MEMPHIS: [], PHOENIX: [] }, acceptRoleIds: { MEMPHIS: [], PHOENIX: [] } };
+const roles = { fam: "1", memphis: "2" };
+const apiConfig: ApplicationConfig = { applicationChannelId: "channel", callCategoryId: "category", port: 0, staffRoleIds: { MEMPHIS: [] }, acceptRoleIds: { MEMPHIS: [] } };
 const application = { id: "app-1", family: "MEMPHIS" as const, discordUserId: "applicant", discordUsername: "member", discordDisplayName: "Member", discordTextChannelId: "text", discordVoiceChannelId: "voice" };
 
 test("access request channel is read only from its environment variable", () => {
@@ -188,9 +188,9 @@ test("acceptance rolls back newly added roles if Discord rejects the nickname", 
   assert.deepEqual(removed, ["role-1"]);
 });
 
-test("accept role lists are family-specific and always include FAM plus family role", () => {
+test("accept role list includes only FAM and the active Memphis role", () => {
   assert.deepEqual(acceptRoleIdsForFamily("MEMPHIS", roles, ["4"]), ["1", "2", "4"]);
-  assert.deepEqual(acceptRoleIdsForFamily("PHOENIX", roles, ["5"]), ["1", "3", "5"]);
+  assert.throws(() => acceptRoleIdsForFamily("PHOENIX" as never, roles, ["5"]), { message: "FAMILY_UNAVAILABLE" });
 });
 
 test("cleanup deletes both owned channels and waits for each deletion", async () => {

@@ -44,7 +44,7 @@ export default async function FamilyApplicationsPage({
       <Header user={user} />
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href={family === "MEMPHIS" ? "/memphis" : "/phoenix"} className="londo-ui-button"><span aria-hidden="true">←</span> Панель сервера</Link>
+          <Link href="/memphis" className="londo-ui-button"><span aria-hidden="true">←</span> Панель сервера</Link>
           <p className="londo-ui-tooltip">Панель рекрута <span aria-hidden="true">/</span> {familyLabel(family)} <span aria-hidden="true">/</span> Заявки</p>
         </div>
         <section className="londo-ui-surface mt-5 p-5 sm:p-7" aria-labelledby="applications-title">

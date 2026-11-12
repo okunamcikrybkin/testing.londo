@@ -4,7 +4,7 @@ import { logWarning } from "../utils/logger.js";
 
 type Item = {
   eventId: string;
-  family: "MEMPHIS" | "PHOENIX";
+  family: "MEMPHIS";
   channelId: string;
   roleId: string | null;
   title: string;
@@ -24,7 +24,7 @@ export function notificationMessage(item: Item, siteUrl: string) {
   const resolved = Boolean(item.resolution);
   const claimed = Boolean(item.claim);
   const claimUrl = item.kindLabel === "Заявка" ? `${url.href}${url.search ? "&" : "?"}claim=1` : url.href;
-  if (!( ["MEMPHIS", "PHOENIX"] as string[]).includes(item.family) || !/^\d{17,20}$/.test(item.channelId) || (item.roleId && !/^\d{17,20}$/.test(item.roleId)) || !/^\d{17,20}$/.test(item.userId) || url.origin !== new URL(siteUrl).origin) throw Error("Invalid notification");
+  if (item.family !== "MEMPHIS" || !/^\d{17,20}$/.test(item.channelId) || (item.roleId && !/^\d{17,20}$/.test(item.roleId)) || !/^\d{17,20}$/.test(item.userId) || url.origin !== new URL(siteUrl).origin) throw Error("Invalid notification");
   const fields = (item.fields ?? []).slice(0, 18).map(field => ({ name: field.name.slice(0, 256), value: field.value.slice(0, 1024), inline: field.inline }));
   const rejected = item.resolution?.status === "REJECTED";
   const embed = new EmbedBuilder()

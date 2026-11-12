@@ -27,7 +27,8 @@ function readDiscordId(value: string | undefined, name: string): string {
 }
 
 function getFamilyConfig(family: Family, requiresAcceptRoles = false): FamilyDiscordConfig {
-  const prefix = family === "MEMPHIS" ? "MEMPHIS" : "PHOENIX";
+  if (family !== "MEMPHIS") throw new DiscordIntegrationError("Family is unavailable.");
+  const prefix = "MEMPHIS";
   const config: FamilyDiscordConfig = {
     acceptRoleIds: parseIds(process.env[`${prefix}_ACCEPT_ROLE_IDS`]),
     applicationCategoryId: readDiscordId(

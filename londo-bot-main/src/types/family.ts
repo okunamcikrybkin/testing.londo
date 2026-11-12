@@ -1,4 +1,5 @@
 export const FAMILIES = ["MEMPHIS"] as const;
+export type ActiveFamily = (typeof FAMILIES)[number];
 
 /** PHOENIX remains in the type for old stored records; runtime operations use FAMILIES. */
 export type Family = "MEMPHIS" | "PHOENIX";
@@ -6,7 +7,6 @@ export type Family = "MEMPHIS" | "PHOENIX";
 export type FamilyRoleIds = {
   fam: string;
   memphis: string;
-  phoenix: string;
 };
 
 export type DiscordConfig = {
@@ -19,11 +19,11 @@ export type ApplicationConfig = {
   applicationChannelId: string;
   callCategoryId: string;
   port: number;
-  staffRoleIds: Record<Family, string[]>;
-  acceptRoleIds: Record<Family, string[]>;
+  staffRoleIds: Record<ActiveFamily, string[]>;
+  acceptRoleIds: Record<ActiveFamily, string[]>;
 };
 
-export type ApplicationEmojiIds = Record<Family, string | null>;
+export type ApplicationEmojiIds = Record<ActiveFamily, string | null>;
 
 export type VoiceConfig = { afkChannelId: string | null };
 

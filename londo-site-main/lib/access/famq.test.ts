@@ -8,16 +8,16 @@ for(const rank of FAMQ_RANK_IDS)test(`FAM + MEMPHIS + rank ${rank} resolves FAMQ
 test("family scopes require FAM, membership and an ordinary rank together",()=>{
  const rank=FAMQ_RANK_IDS[0];
  assert.deepEqual(resolveFamqFamilies([roles.fam,roles.memphis,rank],roles),["MEMPHIS"]);
- for(const ids of [[roles.memphis,rank],[roles.fam,rank],[roles.fam,roles.memphis],[roles.fam,process.env.PHOENIX_RECRUIT_ROLE_ID,rank],[],null])assert.deepEqual(resolveFamqFamilies(ids,roles),[]);
+ for(const ids of [[roles.memphis,rank],[roles.fam,rank],[roles.fam,roles.memphis],[roles.fam,"legacy-family-rank",rank],[],null])assert.deepEqual(resolveFamqFamilies(ids,roles),[]);
 });
 test("PIN gating and staff revocation preserve independent base membership",()=>{
  const user={role:"RECRUIT" as const,accessSnapshot:{roleIds:[roles.fam,roles.memphis,FAMQ_RANK_IDS[0]]},staffAccessGrants:[{role:"RECRUIT" as const,memphisRole:"RECRUIT" as const,phoenixRole:"USER" as const}],staffAccessCredential:{pinSetAt:new Date(),credentialVersion:1}};
  const session={user,staffPinVerifiedAt:null,staffPinCredentialVersion:null};
  const locked=sessionStaffState(session,false);
- assert.deepEqual(locked.famqFamilies,["PHOENIX"]);assert.equal(locked.role,"USER");assert.equal(locked.pinRequired,true);
+ assert.deepEqual(locked.famqFamilies,["MEMPHIS"]);assert.equal(locked.role,"USER");assert.equal(locked.pinRequired,true);
  assert.equal(locked.baseFamilyAccess.MEMPHIS,"FAMQ");assert.equal(locked.baseFamilyAccess.PHOENIX,"USER");
  const verified=sessionStaffState({...session,staffPinVerifiedAt:new Date(),staffPinCredentialVersion:1},false);assert.equal(verified.role,"RECRUIT");assert.equal(verified.pinRequired,false);
- const revoked=sessionStaffState({...session,user:{...user,role:"USER",staffAccessGrants:[]}},false);assert.deepEqual(revoked.famqFamilies,["PHOENIX"]);assert.equal(revoked.pinRequired,false);
+ const revoked=sessionStaffState({...session,user:{...user,role:"USER",staffAccessGrants:[]}},false);assert.deepEqual(revoked.famqFamilies,["MEMPHIS"]);assert.equal(revoked.pinRequired,false);
  const removed=sessionStaffState({...session,user:{...user,accessSnapshot:{roleIds:[roles.memphis,FAMQ_RANK_IDS[0]]},staffAccessGrants:[]}},false);assert.deepEqual(removed.famqFamilies,[]);
 });
 test("complete six-level matrix agrees with navigation",()=>{

@@ -1,12 +1,12 @@
 import type { GuildMember } from "discord.js";
-import { FAMILIES, type Family, type FamilyRoleIds } from "../types/family.js";
+import { FAMILIES, type ActiveFamily, type FamilyRoleIds } from "../types/family.js";
 import { resolveFamilyRank, type ResolvedFamilyRank } from "./ranks.js";
 import { parseRosterNickname } from "./nickname.js";
 
 export type ActiveFamilyMembership = {
   active: true;
   discordUserId: string;
-  family: Family;
+  family: ActiveFamily;
 };
 
 export type RosterMember = {
@@ -14,25 +14,24 @@ export type RosterMember = {
   discordDisplayName: string;
   discordUserId: string;
   discordUsername: string;
-  family: Family;
+  family: ActiveFamily;
   gameNickname: string;
   rank: ResolvedFamilyRank | null;
   staticId: string | null;
 };
 
 export type MemberRosterSync = Omit<RosterMember, "family" | "rank"> & {
-  memberships: Array<{ active: boolean; family: Family; rank: ResolvedFamilyRank | null }>;
+  memberships: Array<{ active: boolean; family: ActiveFamily; rank: ResolvedFamilyRank | null }>;
 };
 
 /** Returns every active family membership represented by the member's Discord roles. */
-export function getMemberFamilies(member: GuildMember, roles: FamilyRoleIds): Family[] {
+export function getMemberFamilies(member: GuildMember, roles: FamilyRoleIds): ActiveFamily[] {
   if (!member.roles.cache.has(roles.fam)) {
     return [];
   }
 
   return FAMILIES.filter((family) => {
-    const familyRoleId = family === "MEMPHIS" ? roles.memphis : roles.phoenix;
-    return member.roles.cache.has(familyRoleId);
+    return member.roles.cache.has(roles.memphis);
   });
 }
 
@@ -51,7 +50,7 @@ export function getActiveFamilyMemberships(
 /** Filters an already-fetched member collection; this function never calls Discord. */
 export function getFamilyMembers(
   members: Iterable<GuildMember>,
-  family: Family,
+  family: ActiveFamily,
   roles: FamilyRoleIds,
 ): GuildMember[] {
   return Array.from(members).filter((member) => getMemberFamilies(member, roles).includes(family));
@@ -60,7 +59,7 @@ export function getFamilyMembers(
 /** Builds one family-scoped roster from an already-fetched Discord member snapshot. */
 export function getFamilyRoster(
   members: Iterable<GuildMember>,
-  family: Family,
+  family: ActiveFamily,
   roles: FamilyRoleIds,
 ): RosterMember[] {
   return getFamilyMembers(members, family, roles).map((member) => ({

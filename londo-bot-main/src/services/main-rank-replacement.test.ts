@@ -5,21 +5,21 @@ import { mainRankCleanup, MAIN_RANK_ROLE_IDS } from "./main-ranks.js";
 import { FAMILY_RANKS } from "../config/familyRanks.js";
 import { Collection, type Guild } from "discord.js";
 import type { ApplicationConfig } from "../types/family.js";
-const role=(key:string)=>key==="PHOENIX_RECRUIT"?process.env.PHOENIX_RECRUIT_ROLE_ID!:FAMILY_RANKS.find(r=>r.key===key)!.roleId;
-const steps=[["NEWBIE","BABY_LONDO"],["NEWBIE","LONDO"],["BABY_LONDO","YOUNG_LONDO"],["YOUNG_LONDO","LONDO"],["LONDO","MEMPHIS_RECRUIT"],["MEMPHIS_RECRUIT","LONDEST_LONDO"],["LONDEST_LONDO","MAIN"],["LONDO","PHOENIX_RECRUIT"]];
-function fixture(keys:string[],target:string,family:"MEMPHIS"|"PHOENIX"="MEMPHIS"){
+const role=(key:string)=>FAMILY_RANKS.find(r=>r.key===key)!.roleId;
+const steps=[["NEWBIE","BABY_LONDO"],["NEWBIE","LONDO"],["BABY_LONDO","YOUNG_LONDO"],["YOUNG_LONDO","LONDO"],["LONDO","MEMPHIS_RECRUIT"],["MEMPHIS_RECRUIT","LONDEST_LONDO"],["LONDEST_LONDO","MAIN"]];
+function fixture(keys:string[],target:string,family:"MEMPHIS"="MEMPHIS"){
  const held=new Set(keys),events:string[]=[];
  const ops={has:async(id:string)=>held.has(id),add:async(id:string)=>{events.push("add:"+id);held.add(id);},remove:async(id:string)=>{events.push("remove:"+id);held.delete(id);}};
  const plan={discordUserId:"user",family,targetRoleId:target,removeRoleIds:[]};
  return {held,events,ops,plan,cleanup:mainRankCleanup(family,target,false)};
 }
 for(const [from,to] of steps)test(from+" -> "+to,async()=>{
- const f=fixture([role(from)],role(to),to==="PHOENIX_RECRUIT"?"PHOENIX":"MEMPHIS");
+ const f=fixture([role(from)],role(to));
  assert.equal(await applyRolePlan(f.plan,f.ops,f.cleanup),"APPLIED");
  assert.deepEqual([...f.held],[role(to)]);assert.equal(f.events[0],"add:"+role(to));
 });
 test("all old ranks removed, unrelated roles preserved, repeat does not duplicate operations",async()=>{
- const other=[role("OWNER"),role("MEMPHIS_HIGH_STAFF"),"fam","memphis","phoenix","vacation","afk","media","decorative","integration"];
+ const other=[role("OWNER"),role("MEMPHIS_HIGH_STAFF"),"fam","memphis","legacy-family-role","vacation","afk","media","decorative","integration"];
  const target=role("MAIN"),f=fixture([...MAIN_RANK_ROLE_IDS,...other],target);
  assert.equal(await applyRolePlan(f.plan,f.ops,f.cleanup),"APPLIED");
  assert.deepEqual(new Set(f.held),new Set([target,...other]));
@@ -47,8 +47,8 @@ test("failed removal retains confirmed target and retries cleanup without duplic
 });
 test("roles acquired during grant are also cleaned",async()=>{
  const f=fixture([role("NEWBIE")],role("LONDO")),add=f.ops.add;
- f.ops.add=async id=>{await add(id);f.held.add(role("PHOENIX_RECRUIT"));};
- assert.equal(await applyRolePlan(f.plan,f.ops,f.cleanup),"APPLIED");assert.deepEqual([...f.held],[role("LONDO")]);
+ f.ops.add=async id=>{await add(id);f.held.add("legacy-family-role");};
+ assert.equal(await applyRolePlan(f.plan,f.ops,f.cleanup),"APPLIED");assert.deepEqual(new Set(f.held),new Set([role("LONDO"),"legacy-family-role"]));
 });
 test("manager repairs legacy empty plan, ignores removePreviousRank and preserves configured positions",async()=>{
  const target=role("LONDO"),position=role("BABY_LONDO"),held=new Collection<string,unknown>([[role("NEWBIE"),{}],[role("MEMPHIS_RECRUIT"),{}],[position,{}],["fam",{}],["memphis",{}]]);
@@ -61,7 +61,7 @@ test("manager repairs legacy empty plan, ignores removePreviousRank and preserve
   override async request<T>(body:object):Promise<T>{const b=body as Record<string,unknown>;if(b.operation==="PLAN")return {plan:{discordUserId:user.id,family:"MEMPHIS",targetRoleId:target,removeRoleIds:[]}} as T;if(b.operation==="CATALOG")return {ranks,settings:[],queue:[]} as T;if(b.operation==="SETTLE"){settlements.push(b);return {} as T;}throw Error("unexpected");}
   override async check(){return {removableRoleIds:[],roleIds:[...held.keys()],families:["MEMPHIS" as const],owned:held.has(target),username:"Test",displayName:"Test"};}
  }
- const manager=new Manager(guild,{siteUrl:"https://example.invalid",apiSecret:"test"},{fam:"fam",memphis:"memphis",phoenix:"phoenix"},{staffRoleIds:{MEMPHIS:[],PHOENIX:[]}} as unknown as ApplicationConfig);
+ const manager=new Manager(guild,{siteUrl:"https://example.invalid",apiSecret:"test"},{fam:"fam",memphis:"memphis"},{staffRoleIds:{MEMPHIS:[]},acceptRoleIds:{MEMPHIS:[]},applicationChannelId:"channel",callCategoryId:"category",port:3101});
  const original=globalThis.fetch;globalThis.fetch=async()=>new Response("{}");
  try{assert.equal((await manager.apply("app")).outcome,"APPLIED");assert.deepEqual(new Set(held.keys()),new Set([target,position,"fam","memphis"]));assert.deepEqual(new Set(settlements[0].removedRoleIds as string[]),new Set([role("NEWBIE"),role("MEMPHIS_RECRUIT")]));assert.equal((await manager.apply("app")).outcome,"APPLIED");assert.deepEqual(settlements[1].removedRoleIds,[]);}finally{globalThis.fetch=original;}
 });

@@ -3,7 +3,7 @@ import type { SessionUser } from "../auth/session";
 import { meetsAccess } from "../permissions/features";
 
 export function canEditFamilyApplication(user: Pick<SessionUser, "effectiveAccess" | "pinVerified" | "familyAccess"> | null, family: Family): boolean {
-  if (!user) return false;
+  if (!user || family !== "MEMPHIS") return false;
   if (user.effectiveAccess === "FULL_ACCESS") return true;
   return user.pinVerified === true && meetsAccess(user.effectiveAccess, "RECRUIT") && meetsAccess(user.familyAccess?.[family] ?? "USER", "RECRUIT");
 }

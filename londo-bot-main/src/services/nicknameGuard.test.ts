@@ -23,7 +23,7 @@ function guardWithLogs() {
 }
 
 test("ordinary FAM member self edits are restored", async () => {
-  for (const rank of [newbie, recruitMem, highStaffMem]) {
+  for (const rank of [newbie, recruitMem]) {
     let restoredTo: string | null | undefined; const { guard } = guardWithLogs();
     await guard.handleUpdate(member("Vafelion | 566", [roles.fam, rank]), member("TEST", [roles.fam, rank], { setNickname: async (nickname) => { restoredTo = nickname; } }), roles, actor(targetId));
     assert.equal(restoredTo, "Vafelion | 566");

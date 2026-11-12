@@ -5,7 +5,7 @@ import { FAMILY_RANKS } from "../config/familyRanks.js";
 import { getFamilyRoster, getMemberFamilies } from "./members.js";
 import { resolveFamilyRank } from "./ranks.js";
 
-const familyRoles = { fam: "111111111111111111", memphis: "222222222222222222", phoenix: "333333333333333333" };
+const familyRoles = { fam: "111111111111111111", memphis: "222222222222222222" };
 const rank = (key: string) => {
   const result = FAMILY_RANKS.find((item) => item.key === key);
   if (!result) throw new Error(`Unknown rank fixture: ${key}`);
@@ -27,27 +27,23 @@ function member(roleIds: string[], id = "926534588023590922", roleNames: Record<
   } as unknown as GuildMember;
 }
 
-test("rank resolver honors the full configured hierarchy chain for both families", () => {
+test("rank resolver honors the configured Memphis hierarchy chain", () => {
   const memphis = ["OWNER", "MEMPHIS_DEP_OWNER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT", "MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"];
-  const phoenix = ["OWNER", "PHOENIX_LEADER", "PHOENIX_DEP_OWNER", "PHOENIX_HIGH_STAFF", "PHOENIX_CUR_RECRUIT", "PHOENIX_RECRUIT", "MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"];
   for (const [index, key] of memphis.entries()) assert.equal(resolveFamilyRank(member(memphis.slice(index).map(rank)), "MEMPHIS")?.key, key);
-  for (const [index, key] of phoenix.entries()) assert.equal(resolveFamilyRank(member(phoenix.slice(index).map(rank)), "PHOENIX")?.key, key);
 });
 
-test("family scoped ranks stay isolated while common ranks work for both", () => {
-  const dual = member([familyRoles.fam, familyRoles.memphis, familyRoles.phoenix, rank("MEMPHIS_HIGH_STAFF"), rank("PHOENIX_RECRUIT")]);
+test("active rank resolution ignores legacy Phoenix roles", () => {
+  const dual = member([familyRoles.fam, familyRoles.memphis, rank("MEMPHIS_HIGH_STAFF"), "333333333333333333"]);
   assert.equal(resolveFamilyRank(dual, "MEMPHIS")?.key, "MEMPHIS_HIGH_STAFF");
-  assert.equal(resolveFamilyRank(dual, "PHOENIX")?.key, "PHOENIX_RECRUIT");
   assert.equal(resolveFamilyRank(member([rank("LONDO")]), "MEMPHIS")?.key, "LONDO");
-  assert.equal(resolveFamilyRank(member([rank("LONDO")]), "PHOENIX")?.key, "LONDO");
+  assert.equal(resolveFamilyRank(member([rank("LONDO")]), "PHOENIX"), null);
 });
 
-test("dual membership produces both independent ranks and keeps rankless members", () => {
-  const dual = member([familyRoles.fam, familyRoles.memphis, familyRoles.phoenix, rank("MEMPHIS_HIGH_STAFF"), rank("PHOENIX_RECRUIT")]);
+test("roster sync reports Memphis only and keeps rankless members", () => {
+  const dual = member([familyRoles.fam, familyRoles.memphis, "333333333333333333", rank("MEMPHIS_HIGH_STAFF")]);
   const rankless = member([familyRoles.fam, familyRoles.memphis], "rankless");
-  assert.deepEqual(getMemberFamilies(dual, familyRoles), ["MEMPHIS", "PHOENIX"]);
+  assert.deepEqual(getMemberFamilies(dual, familyRoles), ["MEMPHIS"]);
   assert.equal(getFamilyRoster([dual, rankless], "MEMPHIS", familyRoles)[0]?.rank?.key, "MEMPHIS_HIGH_STAFF");
-  assert.equal(getFamilyRoster([dual, rankless], "PHOENIX", familyRoles)[0]?.rank?.key, "PHOENIX_RECRUIT");
   assert.equal(getFamilyRoster([dual, rankless], "MEMPHIS", familyRoles)[1]?.rank, null);
 });
 
@@ -59,7 +55,6 @@ test("known rank names resolve when Discord role IDs differ from the legacy mapp
   const ownerId = "111111111111111111", deputyId = "222222222222222222";
   assert.equal(resolveFamilyRank(member([ownerId], "owner", { [ownerId]: "Owner" }), "MEMPHIS")?.key, "OWNER");
   assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "MEMPHIS")?.key, "MEMPHIS_DEP_OWNER");
-  assert.equal(resolveFamilyRank(member([deputyId], "deputy", { [deputyId]: "Dep.Owner" }), "PHOENIX"), null);
 });
 
 test("a recognized role name overrides a stale ID that used to belong to another rank", () => {

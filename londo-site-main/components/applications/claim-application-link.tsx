@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export function ClaimApplicationLink({ id, family, href, completed, claimed, claimedByName, owned }: { id: string; family: "memphis" | "phoenix"; href: string; completed: boolean; claimed: boolean; claimedByName: string | null; owned: boolean }) {
+export function ClaimApplicationLink({ id, family, href, completed, claimed, claimedByName, owned }: { id: string; family: "memphis"; href: string; completed: boolean; claimed: boolean; claimedByName: string | null; owned: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);

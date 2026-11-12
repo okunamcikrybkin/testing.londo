@@ -3,7 +3,6 @@ const variables = [
   "DISCORD_GUILD_ID",
   "FAM_ROLE_ID",
   "MEMPHIS_ROLE_ID",
-  "PHOENIX_ROLE_ID",
   "OWNER_ROLE_ID",
   "MEMPHIS_DEP_OWNER_ROLE_ID",
   "MEMPHIS_HIGH_STAFF_ROLE_ID",
@@ -15,7 +14,6 @@ const variables = [
   "YOUNG_LONDO_ROLE_ID",
   "BABY_LONDO_ROLE_ID",
   "NEWBIE_ROLE_ID",
-  "PHOENIX_RECRUIT_ROLE_ID",
 ];
 
 variables.forEach((name, index) => { process.env[name] = snowflake(index + 1); });

@@ -7,7 +7,7 @@ import { parseFamily } from "@/lib/shop/validation";
 export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   if (!botAuthorized(request)) return unauthorized();
-  const pending = await prisma.shopPurchase.findMany({ where: { type: "DISCORD_ROLE", status: "PENDING_FULFILLMENT" } });
+  const pending = await prisma.shopPurchase.findMany({ where: { family: "MEMPHIS", type: "DISCORD_ROLE", status: "PENDING_FULFILLMENT" } });
   const roles = await Promise.all(pending.map(async purchase => {
     const debit = await prisma.economyTransaction.findFirst({ where: { reason: "SHOP_PURCHASE", metadata: { path: ["purchaseId"], equals: purchase.id } } });
     return { ...purchase, discordRoleId: (debit?.metadata as { discordRoleId?: string } | null)?.discordRoleId ?? null };
@@ -22,7 +22,11 @@ export async function POST(request: NextRequest) {
       if (!/^[a-zA-Z0-9_-]{1,64}$/.test(body.itemId ?? "") || !/^\d{17,20}$/.test(body.discordUserId ?? "") || !/^\d{17,20}$/.test(body.interactionId ?? "")) return noStore({ code: "INVALID_INPUT" }, 400);
       return noStore({ purchase: await buyItem(body.itemId, body.discordUserId, body.interactionId) });
     }
-    if (body.operation === "RESULT" && typeof body.id === "string") return noStore({ purchase: await prisma.shopPurchase.findUniqueOrThrow({ where: { id: body.id } }) });
+    if (body.operation === "RESULT" && typeof body.id === "string") {
+      const purchase = await prisma.shopPurchase.findFirst({ where: { id: body.id, family: "MEMPHIS" } });
+      if (!purchase) return noStore({ code: "PURCHASE_UNAVAILABLE" }, 404);
+      return noStore({ purchase });
+    }
     if (body.operation === "SETTLE" && typeof body.id === "string" && typeof body.refund === "boolean") return noStore(await settlePurchase(body.id, body.refund, null, true));
     if (body.operation === "PANEL") {
       const family = parseFamily(body.family);

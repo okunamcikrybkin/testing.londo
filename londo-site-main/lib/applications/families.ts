@@ -11,7 +11,7 @@ export const FAMILY_COPY: Partial<Record<Family, { description: string; slug: Fa
   },
 };
 
-export function familyFromSlug(value: string): Family | null {
+export function familyFromSlug(value: string): "MEMPHIS" | null {
   if (value === "memphis") {
     return "MEMPHIS";
   }

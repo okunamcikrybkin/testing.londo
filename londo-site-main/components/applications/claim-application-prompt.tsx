@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-export function ClaimApplicationPrompt({ id, family }: { id: string; family: "memphis" | "phoenix" }) {
+export function ClaimApplicationPrompt({ id, family }: { id: string; family: "memphis" }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

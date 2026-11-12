@@ -12,7 +12,7 @@ const MAX_TEXT_LENGTH = 100;
 const MAX_ANSWERS_LENGTH = 30_000;
 
 export type ApplicationIntake = {
-  family: "MEMPHIS" | "PHOENIX";
+  family: "MEMPHIS";
   discordUserId: string;
   discordUsername: string;
   discordDisplayName: string;
@@ -130,7 +130,7 @@ export async function submitFamilyApplication(input: {
   discordDisplayName: string;
   discordUserId: string;
   discordUsername: string;
-  family: "MEMPHIS" | "PHOENIX";
+  family: "MEMPHIS";
 }) {
   if (input.family !== "MEMPHIS") throw new ApplicationInputError("Семья больше недоступна.");
   return createFamilyApplication({

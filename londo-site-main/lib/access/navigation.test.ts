@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {navigationForAccess,userMenuForAccess,isNavigationCurrent} from "../permissions/features";
 test("fixed global navigation and compact user menu for all six access levels",()=>{
- const expected={USER:["О LONDO","Доступ"],FAMQ:["О LONDO","Рулетка","Доступ"],RECRUIT:["О LONDO","Рулетка","Панель рекрута","Доступ"],HIGH_STAFF:["О LONDO","Рулетка","Панель рекрута","Доступ"],OWNER:["О LONDO","Рулетка","Панель рекрута","Доступ"],FULL_ACCESS:["О LONDO","Рулетка","Панель рекрута","Доступ"]};
+ const expected={USER:["О LONDO","Доступ"],FAMQ:["О LONDO","Рулетка","Доступ","Повышения"],RECRUIT:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],HIGH_STAFF:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],OWNER:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],FULL_ACCESS:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"]};
  for(const [role,labels] of Object.entries(expected)){
   const main=navigationForAccess(role),personal=userMenuForAccess(role);
   assert.deepEqual(main.map(i=>i.label),labels);

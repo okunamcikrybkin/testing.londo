@@ -3,11 +3,7 @@ import test from "node:test";
 import type { GuildMember } from "discord.js";
 import { getActiveFamilyMemberships, getFamilyMembers, getMemberFamilies } from "./members.js";
 
-const roles = {
-  fam: "111111111111111111",
-  memphis: "222222222222222222",
-  phoenix: "333333333333333333",
-};
+const roles = { fam: "111111111111111111", memphis: "222222222222222222" };
 
 function memberWithRoles(roleIds: string[], id = "926534588023590922"): GuildMember {
   return {
@@ -16,43 +12,31 @@ function memberWithRoles(roleIds: string[], id = "926534588023590922"): GuildMem
   } as unknown as GuildMember;
 }
 
-test("family membership is independent for each family role when FAM is present", () => {
+test("active membership requires both FAM and Memphis roles", () => {
   assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.memphis]), roles), ["MEMPHIS"]);
-  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.phoenix]), roles), ["PHOENIX"]);
-  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.memphis, roles.phoenix]), roles), ["MEMPHIS", "PHOENIX"]);
-  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.memphis, roles.phoenix]), roles), []);
+  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, "333333333333333333"]), roles), []);
+  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.memphis, "333333333333333333"]), roles), ["MEMPHIS"]);
   assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam]), roles), []);
 });
 
-test("a dual-family member projects two active memberships with one Discord identity", () => {
-  const member = memberWithRoles([roles.fam, roles.memphis, roles.phoenix]);
-
-  assert.deepEqual(getActiveFamilyMemberships(member, roles), [
-    { active: true, discordUserId: member.id, family: "MEMPHIS" },
-    { active: true, discordUserId: member.id, family: "PHOENIX" },
-  ]);
+test("legacy Phoenix role does not create an active family membership", () => {
+  const member = memberWithRoles([roles.fam, "333333333333333333"]);
+  assert.deepEqual(getActiveFamilyMemberships(member, roles), []);
 });
 
-test("getFamilyMembers includes a dual-family member in both independent rosters", () => {
-  const dualFamilyMember = memberWithRoles([roles.fam, roles.memphis, roles.phoenix], "dual-member");
+test("the roster contains only members of Memphis", () => {
   const members = [
     memberWithRoles([roles.fam, roles.memphis]),
-    memberWithRoles([roles.fam, roles.phoenix]),
-    dualFamilyMember,
+    memberWithRoles([roles.fam, "333333333333333333"]),
     memberWithRoles([roles.memphis]),
   ];
-
   const memphis = getFamilyMembers(members, "MEMPHIS", roles);
-  const phoenix = getFamilyMembers(members, "PHOENIX", roles);
-
-  assert.equal(memphis.length, 2);
-  assert.equal(phoenix.length, 2);
-  assert.equal(memphis.includes(dualFamilyMember), true);
-  assert.equal(phoenix.includes(dualFamilyMember), true);
+  assert.equal(memphis.length, 1);
+  assert.equal(memphis[0].roles.cache.has(roles.memphis), true);
 });
 
-test("removing one family role deactivates only that family membership", () => {
-  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.phoenix]), roles), ["PHOENIX"]);
+test("removing either required Memphis role deactivates membership", () => {
   assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam, roles.memphis]), roles), ["MEMPHIS"]);
-  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.memphis, roles.phoenix]), roles), []);
+  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.fam]), roles), []);
+  assert.deepEqual(getMemberFamilies(memberWithRoles([roles.memphis]), roles), []);
 });

@@ -16,10 +16,9 @@ export function resolveDiscordAccess(roleIds: readonly string[]) {
   const familyAccess: FamilyAccess = { MEMPHIS: "USER", PHOENIX: "USER" };
   let role: UserRole = "USER";
   const apply = (access: UserRole, families: readonly ("MEMPHIS" | "PHOENIX")[]) => {
+    if (!families.includes("MEMPHIS")) return;
     if (priority[access] > priority[role]) role = access;
-    for (const family of families) {
-      if (priority[access] > priority[familyAccess[family]]) familyAccess[family] = access;
-    }
+    if (priority[access] > priority[familyAccess.MEMPHIS]) familyAccess.MEMPHIS = access;
   };
   for (const rank of FAMILY_RANKS) {
     const access = staffKeys[rank.key];

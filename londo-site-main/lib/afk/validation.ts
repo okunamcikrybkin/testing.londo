@@ -1,5 +1,4 @@
-import type { Family } from "@prisma/client";
-export function afkFamily(value: unknown): Family { if(value!=="MEMPHIS")throw Error("INVALID_FAMILY");return value; }
+export function afkFamily(value: unknown): "MEMPHIS" { if(value!=="MEMPHIS")throw Error("INVALID_FAMILY");return value; }
 export function afkReason(value:unknown) {if(typeof value!=="string"||!value.trim()||value.trim().length>1000)throw Error("REASON_REQUIRED");return value.trim();}
 import { parseVacationEnd } from "./duration";
 export function afkEnd(value: unknown, now = new Date(), maxHours = 168) { return parseVacationEnd(value, now, maxHours * 60 * 60 * 1000); }

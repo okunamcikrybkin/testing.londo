@@ -30,10 +30,10 @@ export default async function PurchasesPage({searchParams}:{searchParams:Promise
         <button className="londo-button px-5">Показать</button>
       </form>
       <div className="grid gap-4">
-        {!purchases.length&&<section className="londo-card rounded-2xl p-8 text-center"><h2 className="text-lg font-semibold">Покупок пока нет</h2><p className="mt-2 text-sm text-muted">Попробуй выбрать другую семью или состояние покупки.</p></section>}
+        {!purchases.length&&<section className="londo-card rounded-2xl p-8 text-center"><h2 className="text-lg font-semibold">Покупок пока нет</h2><p className="mt-2 text-sm text-muted">Попробуй изменить состояние покупки.</p></section>}
         {purchases.map(p=><article key={p.id} className="londo-card rounded-2xl p-5 [overflow-wrap:anywhere]">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 text-sm text-muted">{p.createdAt.toLocaleString("ru-RU")} · <FamilyServerIcon family={p.family} size="inline" /></p>
+            <p className="flex items-center gap-2 text-sm text-muted">{p.createdAt.toLocaleString("ru-RU")} · <FamilyServerIcon family="MEMPHIS" size="inline" /></p>
             <span className="londo-status-badge">{statusLabels[p.status]??p.status}</span>
           </div>
           <h2 className="my-2 text-xl font-bold">{p.item.name}</h2>

@@ -5,7 +5,7 @@ const LOG_TIMEOUT_MS = 5_000;
 
 export type SystemLogEvent = {
   actor?: { discordId: string; displayName: string; username: string };
-  family?: "MEMPHIS" | "PHOENIX" | null;
+  family?: "MEMPHIS" | null;
   metadata: Record<string, string | number | boolean>;
   discordChannelId?: string;
   serverId: string;

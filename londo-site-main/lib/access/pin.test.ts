@@ -11,19 +11,19 @@ test("salted scrypt hash verifies without storing plaintext; wrong PIN and hash 
   try {const first=await hashPin("0042"),second=await hashPin("0042");assert.notEqual(first,"0042");assert.notEqual(first,second);assert.equal(await verifyPinHash("0042",first),true);assert.equal(await verifyPinHash("1234",first),false);assert.equal(await verifyPinHash("0042","malformed"),false);}finally{if(original===undefined)delete process.env.STAFF_PIN_PEPPER;else process.env.STAFF_PIN_PEPPER=original;}
 });
 test("PIN authorization belongs to one session and current credential version/grant",()=>{
-  const user={role:"RECRUIT" as const,staffAccessGrants:[{role:"RECRUIT" as const,memphisRole:"USER" as const,phoenixRole:"RECRUIT" as const}],staffAccessCredential:{pinSetAt:new Date(),credentialVersion:1}};
+  const user={role:"RECRUIT" as const,staffAccessGrants:[{role:"RECRUIT" as const,memphisRole:"RECRUIT" as const,phoenixRole:"USER" as const}],staffAccessCredential:{pinSetAt:new Date(),credentialVersion:1}};
   const fresh={user,staffPinVerifiedAt:null,staffPinCredentialVersion:null};
   assert.equal(sessionStaffState(fresh,false).role,"USER");assert.equal(sessionStaffState(fresh,false).pinRequired,true);
   const verified={...fresh,staffPinVerifiedAt:new Date(),staffPinCredentialVersion:1};
-  assert.equal(sessionStaffState(verified,false).role,"RECRUIT");assert.deepEqual(sessionStaffState(verified,false).familyAccess,{MEMPHIS:"USER",PHOENIX:"RECRUIT"});
+  assert.equal(sessionStaffState(verified,false).role,"RECRUIT");assert.deepEqual(sessionStaffState(verified,false).familyAccess,{MEMPHIS:"RECRUIT",PHOENIX:"USER"});
   assert.equal(sessionStaffState(fresh,false).pinRequired,true,"new login requires PIN again");
   assert.equal(sessionStaffState({...verified,user:{...user,staffAccessCredential:{pinSetAt:null,credentialVersion:2}}},false).role,"USER");
   assert.equal(sessionStaffState({...verified,user:{...user,staffAccessGrants:[]}},false).role,"USER");
   assert.equal(sessionStaffState(fresh,true).pinRequired,false,"FULL_ACCESS exempt");
 });
 test("scope addition requires request; Discord can only intersect granted scopes",()=>{
-  const granted={memphisRole:"HIGH_STAFF" as const,phoenixRole:"USER" as const};
-  const eligible={memphisRole:"RECRUIT" as const,phoenixRole:"HIGH_STAFF" as const};
+  const granted={memphisRole:"RECRUIT" as const,phoenixRole:"USER" as const};
+  const eligible={memphisRole:"HIGH_STAFF" as const,phoenixRole:"OWNER" as const};
   assert.deepEqual(intersectScopes(granted,eligible),{memphisRole:"RECRUIT",phoenixRole:"USER"});
   assert.equal(canRequestScopes(granted,eligible),true);
   assert.equal(canRequestScopes(granted,granted),false);

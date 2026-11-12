@@ -47,11 +47,9 @@ function optionalHttpUrl(name: string): string | null {
 
 export function loadDiscordConfig(): DiscordConfig {
   for (const name of FAMILY_RANK_ENV_NAMES) discordId(name);
-  discordId("PHOENIX_RECRUIT_ROLE_ID");
   const roles = {
     fam: discordId("FAM_ROLE_ID"),
     memphis: discordId("MEMPHIS_ROLE_ID"),
-    phoenix: optionalDiscordId("PHOENIX_ROLE_ID") ?? "",
   };
 
   if (new Set(Object.values(roles).filter(Boolean)).size !== Object.values(roles).filter(Boolean).length) {
@@ -85,20 +83,14 @@ export function loadApplicationConfig(): ApplicationConfig {
     applicationChannelId: discordId("APPLICATION_CHANNEL_ID"),
     callCategoryId: discordId("APPLICATION_CALL_CATEGORY_ID"),
     port,
-    staffRoleIds: {
-      MEMPHIS: optionalRoleIds("MEMPHIS_STAFF_ROLE_IDS"),
-      PHOENIX: [],
-    },
-    acceptRoleIds: { MEMPHIS: optionalRoleIds("MEMPHIS_ACCEPT_ROLE_IDS"), PHOENIX: [] },
+    staffRoleIds: { MEMPHIS: optionalRoleIds("MEMPHIS_STAFF_ROLE_IDS") },
+    acceptRoleIds: { MEMPHIS: optionalRoleIds("MEMPHIS_ACCEPT_ROLE_IDS") },
   };
 }
 
 /** Loads optional custom emoji IDs for the application family selector. */
 export function loadApplicationEmojiIds(): ApplicationEmojiIds {
-  return {
-    MEMPHIS: optionalDiscordId("MEMPHIS_APPLICATION_EMOJI_ID"),
-    PHOENIX: null,
-  };
+  return { MEMPHIS: optionalDiscordId("MEMPHIS_APPLICATION_EMOJI_ID") };
 }
 
 export function loadVoiceConfig(): VoiceConfig { return { afkChannelId: optionalDiscordId("FAMILY_AFK_CHANNEL_ID") }; }

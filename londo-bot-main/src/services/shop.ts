@@ -2,7 +2,7 @@ import { ButtonBuilder, ButtonStyle, ChannelType, ContainerBuilder, DiscordAPIEr
 import type { SiteLogConfig } from "../config/siteLogs.js";
 import { logWarning } from "../utils/logger.js";
 export type ShopItem = { id: string; name: string; price: string; isActive: boolean; sortOrder: number; deletedAt?: string | null };
-export type Shop = { family: string; title: string; description: string; closedText: string | null; status: string; discordChannelId: string | null; discordMessageId: string | null; items: ShopItem[] };
+export type Shop = { family: "MEMPHIS"; title: string; description: string; closedText: string | null; status: string; discordChannelId: string | null; discordMessageId: string | null; items: ShopItem[] };
 type Pending = { id: string; discordUserId: string; discordRoleId: string | null };
 export function safeShopRole(role: Pick<Role,"id" | "managed" | "editable" | "tags">, guildId: string): boolean { return role.id !== guildId && !role.managed && !role.tags?.botId && !role.tags?.integrationId && role.editable; }
 export function buildShopPanel(shop: Shop, page = 0) {
@@ -45,7 +45,7 @@ export class ShopManager {
       return {code:"OK"};
     } catch (error) { if (error instanceof DiscordAPIError && [10007,10011].includes(Number(error.code))) return {code:"ROLE_UNAVAILABLE"}; throw error; }
   }
-  async refresh(family: string) {
+  async refresh(family: "MEMPHIS") {
     return this.serial("panel:"+family, async () => {
       const {shops} = await this.request<{shops:Shop[]}>();
       const shop = shops.find(s=>s.family===family);

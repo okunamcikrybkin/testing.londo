@@ -7,7 +7,7 @@ import { logWarning } from "../utils/logger.js";
 
 const POLL_MS = 45_000;
 const SNOWFLAKE = /^\d{17,20}$/;
-export type GiveawayFamily = "MEMPHIS" | "PHOENIX" | "ALL";
+export type GiveawayFamily = "MEMPHIS" | "ALL";
 export type GiveawayPayload = { id: string; family: GiveawayFamily; prize: string; description: string; imageUrl: string | null; discordChannelId: string; discordMessageId: string | null; requiredRoleId: string | null; mentionRoleId: string | null; winnerCount: number; endsAt: string; endedAt: string | null; createdAt: string; organizerDiscordId: string; participantCount: number; participants: Array<{ discordUserId: string }>; status: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED" | "CANCELLED"; winners: Array<{ discordUserId: string; position: number; isRerolled: boolean }> };
 type FetchImplementation = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -21,8 +21,7 @@ function currentWinners(giveaway: GiveawayPayload) { return giveaway.winners.fil
 function accessLabel(giveaway: GiveawayPayload, roles: FamilyRoleIds): string {
   if (giveaway.requiredRoleId) return `<@&${giveaway.requiredRoleId}>`;
   if (giveaway.family === "MEMPHIS") return "Memphis";
-  if (giveaway.family === "PHOENIX") return "Phoenix";
-  return `<@&${roles.fam}>`;
+  return "Все участники FAM";
 }
 function safeConditions(value: string): string { return value.replace(/@(everyone|here)/gi, "@\u200b$1"); }
 function plainDate(iso: string): string { return new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso)); }
@@ -90,8 +89,8 @@ export class GiveawayManager {
     return true;
   }
   async poll(): Promise<void> { if (this.#polling) return; this.#polling = true; try { for (const giveaway of await this.store.active()) { if (new Date(giveaway.endsAt) <= new Date()) { const result = await this.store.finish(giveaway.id); if (result.finished) await this.refresh(result.giveaway); } } } catch (error) { logWarning(`[GIVEAWAY] Poll failed: ${error instanceof Error ? error.name : "unknown error"}.`); } finally { this.#polling = false; } }
-  private eligible(member: GuildMember, giveaway: GiveawayPayload): boolean { const families = getMemberFamilies(member, this.roles); return giveaway.family === "ALL" ? member.roles.cache.has(this.roles.fam) : families.includes(giveaway.family); }
-  private valid(value: GiveawayPayload): boolean { return /^[a-zA-Z0-9_-]{1,64}$/.test(value.id) && ["MEMPHIS", "PHOENIX", "ALL"].includes(value.family) && SNOWFLAKE.test(value.discordChannelId) && SNOWFLAKE.test(value.organizerDiscordId) && typeof value.prize === "string" && typeof value.description === "string" && Number.isInteger(value.winnerCount) && value.winnerCount >= 1 && value.winnerCount <= 20; }
+  private eligible(member: GuildMember, giveaway: GiveawayPayload): boolean { return giveaway.family === "ALL" ? member.roles.cache.has(this.roles.fam) : giveaway.family === "MEMPHIS" && getMemberFamilies(member, this.roles).includes("MEMPHIS"); }
+  private valid(value: GiveawayPayload): boolean { return /^[a-zA-Z0-9_-]{1,64}$/.test(value.id) && ["MEMPHIS", "ALL"].includes(value.family) && SNOWFLAKE.test(value.discordChannelId) && SNOWFLAKE.test(value.organizerDiscordId) && typeof value.prize === "string" && typeof value.description === "string" && Number.isInteger(value.winnerCount) && value.winnerCount >= 1 && value.winnerCount <= 20; }
 }
 
 // Kept exported for deterministic test coverage of the crypto selection requirement.

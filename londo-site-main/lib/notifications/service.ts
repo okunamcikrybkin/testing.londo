@@ -13,7 +13,14 @@ export async function settings(db: Db = prisma) {
   for (const family of ["MEMPHIS"] as const) {
     await db.familyNotificationSettings.upsert({ where: { family }, update: {}, create: { family } });
   }
-  return db.familyNotificationSettings.findMany({ where: { family: "MEMPHIS" }, orderBy: { family: "asc" } });
+  return (await db.familyNotificationSettings.findMany({ where: { family: "MEMPHIS" }, orderBy: { family: "asc" } })).map(setting => ({
+    family: "MEMPHIS" as const,
+    channelId: setting.channelId,
+    applicationPingRoleId: setting.applicationPingRoleId,
+    promotionPingRoleId: setting.promotionPingRoleId,
+    vacationPingRoleId: setting.vacationPingRoleId,
+    vacationMaxHours: setting.vacationMaxHours,
+  }));
 }
 
 export function options() {
@@ -41,7 +48,6 @@ export async function save(value: unknown, actorId: string) {
   };
   await settings();
   await prisma.$transaction(async (tx) => {
-    if (channelId && await tx.familyNotificationSettings.findFirst({ where: { channelId, family: { not: family } } })) throw Error("CHANNEL_ALREADY_USED");
     await tx.familyNotificationSettings.update({ where: { family }, data });
     await tx.auditLog.create({ data: { actorId, action: "NOTIFICATION_SETTINGS_UPDATED", targetType: "FamilyNotificationSettings", targetId: family, metadata: { family, ...data } } });
   });
@@ -139,7 +145,7 @@ async function claimInfo(kind: NotificationKind, app: unknown, db: Db) {
 async function makeItem(event: { eventId: string; family: Family; channelId: string; messageId?: string; action: string; target_id: string; updateType?: "CLAIM" | "RESOLUTION" }, configs: Awaited<ReturnType<typeof settings>>, db: Db) {
   const kind = kindFor(event.action);
   const app = await applicationFor(kind, event.target_id, db);
-  if (!app) return null;
+  if (!app || app.family !== "MEMPHIS") return null;
   const destination = notificationDestination(configs, app.family, kind);
   if (!destination) return null;
   const info = await details(kind, app, db);

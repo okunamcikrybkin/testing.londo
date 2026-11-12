@@ -1,7 +1,8 @@
-import type { ApplicationStatus, Family } from "@prisma/client";
+import type { ApplicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 export type ApplicationTab = "new" | "call" | "history";
+type ActiveFamily = "MEMPHIS";
 
 export function statusesForTab(tab: ApplicationTab): ApplicationStatus[] {
   if (tab === "new") {
@@ -15,7 +16,7 @@ export function statusesForTab(tab: ApplicationTab): ApplicationStatus[] {
   return ["ACCEPTED", "REJECTED"];
 }
 
-export async function getFamilyApplicationCounts(family: Family) {
+export async function getFamilyApplicationCounts(family: ActiveFamily) {
   const [newCount, callCount] = await Promise.all([
     prisma.familyApplication.count({ where: { family, status: "NEW" } }),
     prisma.familyApplication.count({ where: { family, status: "CALL" } }),
@@ -24,7 +25,7 @@ export async function getFamilyApplicationCounts(family: Family) {
   return { callCount, newCount };
 }
 
-export async function listFamilyApplications(family: Family, tab: ApplicationTab) {
+export async function listFamilyApplications(family: ActiveFamily, tab: ApplicationTab) {
   const applications = await prisma.familyApplication.findMany({
     where: {
       family,
@@ -53,7 +54,7 @@ export async function listFamilyApplications(family: Family, tab: ApplicationTab
   }));
 }
 
-export async function getFamilyApplication(id: string, family: Family) {
+export async function getFamilyApplication(id: string, family: ActiveFamily) {
   const application = await prisma.familyApplication.findFirst({
     where: { family, id },
     include: {
@@ -72,6 +73,7 @@ export async function getApplicantApplicationHistory(discordUserId: string, curr
   return prisma.familyApplication.findMany({
     where: {
       discordUserId,
+      family: "MEMPHIS",
       id: { not: currentApplicationId },
       status: { in: ["ACCEPTED", "REJECTED"] },
     },

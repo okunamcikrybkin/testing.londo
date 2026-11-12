@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-Phase 4 adds the staff-only MEMPHIS/PHOENIX application system. PostgreSQL now
-stores family applications separately, while Discord operations stay in a
-server-only integration layer.
+This document describes the original multi-family design. The active application
+runtime is now MEMPHIS-only; legacy PHOENIX schema and data remain for database
+compatibility but are not used by active routes or Discord operations.
 
 ## Route Boundaries
 
@@ -41,7 +41,8 @@ for public, dashboard, and admin experiences without changing route paths.
 - `UserStatus` supports `ACTIVE`, `SUSPENDED`, and `BANNED`.
 - `FamilyApplication` records the Discord profile snapshot, JSON answers,
   reviewer, Discord channels, timestamps, and final decision.
-- `Family` supports `MEMPHIS` and `PHOENIX`; every query includes a family filter.
+- The legacy `Family` enum supports `MEMPHIS` and `PHOENIX`; active application
+  queries and operations are limited to `MEMPHIS`.
 - `ApplicationStatus` supports `NEW`, `CALL`, `ACCEPTED`, and `REJECTED`.
 - A partial unique index prevents more than one active application for the same
   Discord user in the same family.
@@ -67,8 +68,8 @@ for public, dashboard, and admin experiences without changing route paths.
 ## Required Discord Configuration
 
 The application intentionally has no IDs or tokens in source control. Configure
-`DISCORD_BOT_TOKEN`, `DISCORD_BOT_API_SECRET`, `DISCORD_GUILD_ID`, both family
-category IDs, staff role ID lists, and accepted-member role ID lists in the
+`DISCORD_BOT_TOKEN`, `DISCORD_BOT_API_SECRET`, `DISCORD_GUILD_ID`, the Memphis
+category ID, staff role ID lists, and accepted-member role ID lists in the
 deployment environment. A missing setting returns a controlled configuration
 error and does not change the application status.
 
@@ -80,9 +81,9 @@ Discord delivers signed component and modal interactions to
 publish the entry message through the server-only form module; no browser code
 receives a bot token.
 
-The flow uses a fixed custom-ID namespace: the entry button presents the two
-allowed families, a family button opens the modal, and the modal ID supplies the
-family server-side. Form answers are stored only with stable keys:
+The flow uses a fixed custom-ID namespace: the entry button opens the Memphis
+application modal, and the modal ID supplies the family server-side. Form
+answers are stored only with stable keys:
 `gameNicknameStatic`, `oocAge`, `joinReason`, `discoverySource`, and
 `charactersScreenshotUrl`. The Discord user identity is read from the signed
 interaction payload.

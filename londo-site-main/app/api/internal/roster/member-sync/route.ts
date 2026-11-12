@@ -1,11 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import type { Family } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 const DISCORD_ID = /^\d{17,20}$/;
-const FAMILIES = ["MEMPHIS"] as const;
-type Membership = { active: boolean; family: Family; rank: { key: string; label: string; priority: number; roleId: string } | null };
+type Membership = { active: boolean; family: "MEMPHIS"; rank: { key: string; label: string; priority: number; roleId: string } | null };
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.LONDO_BOT_API_SECRET;
@@ -31,12 +29,12 @@ function parseMembership(value: unknown): Membership {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("membership is invalid.");
   const membership = value as Record<string, unknown>;
   const family = requiredText(membership.family, "family", 20);
-  if (!FAMILIES.includes(family as Family) || typeof membership.active !== "boolean") throw new Error("membership is invalid.");
-  if (membership.rank === null || membership.rank === undefined) return { active: membership.active, family: family as Family, rank: null };
+  if (family !== "MEMPHIS" || typeof membership.active !== "boolean") throw new Error("membership is invalid.");
+  if (membership.rank === null || membership.rank === undefined) return { active: membership.active, family, rank: null };
   if (!membership.rank || typeof membership.rank !== "object" || Array.isArray(membership.rank)) throw new Error("rank is invalid.");
   const rank = membership.rank as Record<string, unknown>;
   if (!Number.isInteger(rank.priority) || (rank.priority as number) < 1 || (rank.priority as number) > 12) throw new Error("rank is invalid.");
-  return { active: membership.active, family: family as Family, rank: { key: requiredText(rank.key, "rank.key"), label: requiredText(rank.label, "rank.label"), priority: rank.priority as number, roleId: discordId(rank.roleId, "rank.roleId") } };
+  return { active: membership.active, family, rank: { key: requiredText(rank.key, "rank.key"), label: requiredText(rank.label, "rank.label"), priority: rank.priority as number, roleId: discordId(rank.roleId, "rank.roleId") } };
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +46,7 @@ export async function POST(request: NextRequest) {
     const input = body as Record<string, unknown>;
     const discordUserId = discordId(input.discordUserId, "discordUserId");
     const memberships = Array.isArray(input.memberships) ? input.memberships.map(parseMembership) : [];
-    if (memberships.length !== FAMILIES.length || new Set(memberships.map((membership) => membership.family)).size !== FAMILIES.length) throw new Error("memberships are invalid.");
+    if (memberships.length !== 1) throw new Error("memberships are invalid.");
     const syncedAt = new Date();
     await prisma.$transaction(async (tx) => {
       const identity = { username: requiredText(input.discordUsername, "discordUsername"), displayName: requiredText(input.discordDisplayName, "discordDisplayName"), avatarUrl: optionalText(input.avatarUrl, "avatarUrl"), gameNickname: requiredText(input.gameNickname, "gameNickname"), staticId: optionalText(input.staticId, "staticId", 100) };

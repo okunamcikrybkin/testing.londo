@@ -8,7 +8,7 @@ import { normalizeRejectionReason } from "@/lib/applications/rejection-reason";
 
 type ApplicationActionsProps = {
   applicationId: string;
-  family: "memphis" | "phoenix";
+  family: "memphis";
   status: ApplicationStatus;
   claimedByUserId: string | null;
   currentUserId: string;
