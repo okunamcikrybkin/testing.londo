@@ -16,11 +16,14 @@ test("human join sends one welcome with application mention and current member c
   assert.equal(await sendWelcome(member(), config, { assetExists: false, channel: channel(sent) }), true);
   assert.equal(sent.length, 1);
   const payload = sent[0] as ReturnType<typeof createWelcomeMessage>;
-  const description = payload.embeds[0]?.toJSON().description ?? "";
+  const embed = payload.embeds[0]?.toJSON();
+  const description = embed?.description ?? "";
+  assert.equal(embed?.color, undefined);
   assert.match(description, /<@926534588023590922>/);
   assert.match(description, /<#111111111111111111>/);
   assert.match(description, /Всего участников — 970/);
-  assert.match(description, /присоединился к серверу LONDO/);
+  assert.match(description, /† присоединился к серверу/);
+  assert.match(description, /\| <t:\d+:f>/);
   assert.equal(payload.files.length, 0);
 });
 
@@ -46,7 +49,10 @@ test("welcome message includes the local attachment when the asset exists", () =
   const payload = createWelcomeMessage(member(), 3, null, true);
   assert.equal(payload.files.length, 1);
   assert.equal(payload.embeds[0]?.toJSON().image?.url, "attachment://londo-guide-logo.png");
-  assert.match(payload.embeds[0]?.toJSON().description ?? "", /Подавай заявку в разделе заявок/);
+  const description = payload.embeds[0]?.toJSON().description ?? "";
+  assert.match(description, /Подавай заявку в разделе заявок/);
+  assert.match(description, /† присоединился к серверу/);
+  assert.match(description, /Всего участников — 3 \| <t:\d+:f>/);
 });
 
 test("test-welcome permits administrators and denies non-admins", async () => {

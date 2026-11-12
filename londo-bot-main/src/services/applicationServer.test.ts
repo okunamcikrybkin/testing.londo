@@ -2,12 +2,27 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import { ChannelType, PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
-import { acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, createApplicantNotification, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
+import { accessRequestChannelId, acceptRoleIdsForFamily, applicationCallOverwrites, applyAcceptedApplicationChanges, cleanupApplicationChannels, createApplicantNotification, isExpectedTextChannel, isExpectedVoiceChannel, isValidRejectionReason, startApplicationServer, type CleanupOperations, validateApplicationPayload } from "./applicationServer.js";
 import type { ApplicationConfig } from "../types/family.js";
 
 const roles = { fam: "1", memphis: "2", phoenix: "3" };
 const apiConfig: ApplicationConfig = { applicationChannelId: "channel", callCategoryId: "category", port: 0, staffRoleIds: { MEMPHIS: [], PHOENIX: [] }, acceptRoleIds: { MEMPHIS: [], PHOENIX: [] } };
 const application = { id: "app-1", family: "MEMPHIS" as const, discordUserId: "applicant", discordUsername: "member", discordDisplayName: "Member", discordTextChannelId: "text", discordVoiceChannelId: "voice" };
+
+test("access request channel is read only from its environment variable", () => {
+  const previous = process.env.ACCESS_REQUEST_CHANNEL_ID;
+  try {
+    delete process.env.ACCESS_REQUEST_CHANNEL_ID;
+    assert.equal(accessRequestChannelId(), null);
+    process.env.ACCESS_REQUEST_CHANNEL_ID = " 1560254805283311626 ";
+    assert.equal(accessRequestChannelId(), "1560254805283311626");
+    process.env.ACCESS_REQUEST_CHANNEL_ID = "not-a-channel";
+    assert.equal(accessRequestChannelId(), null);
+  } finally {
+    if (previous === undefined) delete process.env.ACCESS_REQUEST_CHANNEL_ID;
+    else process.env.ACCESS_REQUEST_CHANNEL_ID = previous;
+  }
+});
 
 type TestChannel = { type: ChannelType; topic?: string; parentId?: string; permissionOverwrites?: { cache: { has(id: string): boolean } }; delete(reason?: string): Promise<unknown>; permissionsFor(): { has(): boolean }; };
 

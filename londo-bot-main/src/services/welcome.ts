@@ -16,8 +16,7 @@ export function createWelcomeMessage(member: Pick<GuildMember, "displayName" | "
   const applicationText = applicationChannelId ? `Подавай заявку <#${applicationChannelId}>` : "Подавай заявку в разделе заявок";
   const timestamp = Math.floor(Date.now() / 1_000);
   const embed = new EmbedBuilder()
-    .setColor(0x5c1823)
-    .setDescription(`<@${member.id}>\n\n**${member.displayName || member.user.username}**\nприсоединился к серверу LONDO\n\n${applicationText}\n\n────────────\nВсего участников — ${memberCount} • <t:${timestamp}:t>`);
+    .setDescription(`<@${member.id}>\n\n**${member.displayName || member.user.username}**\n† присоединился к серверу\n\n${applicationText}\n\n────────────\nВсего участников — ${memberCount} | <t:${timestamp}:f>`);
   if (includeImage) embed.setImage(`attachment://${WELCOME_IMAGE_NAME}`);
   return { embeds: [embed], files: includeImage ? [new AttachmentBuilder(WELCOME_IMAGE_PATH, { name: WELCOME_IMAGE_NAME })] : [] };
 }

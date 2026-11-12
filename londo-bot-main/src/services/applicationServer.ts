@@ -24,8 +24,11 @@ type ValidationIssue = { field: string; expected: string; kind: "missing" | "inv
 type ApplicationValidation = { ok: true; application: Application } | { ok: false; issues: ValidationIssue[] };
 
 const MAX_REJECTION_REASON_LENGTH = 1_000;
-const ACCESS_REQUEST_CHANNEL_ID = process.env.ACCESS_REQUEST_CHANNEL_ID?.trim() || "1560254805283311626";
 const ACCESS_ROLE_LABELS: Record<string, string> = { USER: "Участник", RECRUIT: "Рекрутер", HIGH_STAFF: "Старший сотрудник", OWNER: "Владелец" };
+export function accessRequestChannelId(value = process.env.ACCESS_REQUEST_CHANNEL_ID): string | null {
+  const id = value?.trim();
+  return id && /^\d{17,20}$/.test(id) ? id : null;
+}
 function accessRoleLabel(value: unknown): string { return typeof value === "string" ? ACCESS_ROLE_LABELS[value] ?? "Нет доступа" : "Нет доступа"; }
 function accessSiteUrl(path: string): string | null {
   const base = process.env.LONDO_SITE_URL?.trim();
@@ -356,8 +359,9 @@ export function startApplicationServer(guild: Guild, config: ApplicationConfig, 
         const accessUrl = accessSiteUrl(pathname.endsWith("/request") ? "/access/manage" : "/access/pin/setup");
         const scopes = `MEMPHIS: ${accessRoleLabel(body.memphisRole)}`;
         if (pathname.endsWith("/request")) {
-          if (!/^\d{17,20}$/.test(ACCESS_REQUEST_CHANNEL_ID)) { respond(503, { code: "ACCESS_CHANNEL_NOT_CONFIGURED" }); return; }
-          const channel = await guild.channels.fetch(ACCESS_REQUEST_CHANNEL_ID);
+          const requestChannelId = accessRequestChannelId();
+          if (!requestChannelId) { respond(503, { code: "ACCESS_CHANNEL_NOT_CONFIGURED" }); return; }
+          const channel = await guild.channels.fetch(requestChannelId);
           if (!channel?.isTextBased() || !channel.isSendable()) { respond(503, { code: "ACCESS_CHANNEL_UNAVAILABLE" }); return; }
           const embed = new EmbedBuilder()
             .setColor(0xe6b77a)
