@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Guild } from "discord.js";
@@ -12,6 +12,18 @@ const data = { coins: Array.from({ length: 11 }, (_, index) => ({ balance: `${11
 async function createStateFile() {
   const directory = await mkdtemp(join(tmpdir(), "londo-leaderboard-test-"));
   return { path: join(directory, "messages.json"), cleanup: () => rm(directory, { recursive: true, force: true }) };
+}
+async function waitForSavedMessage(path: string) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      const state = JSON.parse(await readFile(path, "utf8")) as Record<string, string>;
+      if (state["guild:channel"]) return;
+    } catch (error) {
+      if (!error || typeof error !== "object" || !("code" in error) || error.code !== "ENOENT") throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.fail("Scheduled leaderboard refresh did not save its message ID.");
 }
 
 test("leaderboard formats decimal coins, voice duration, empty fields, and limits output to ten", () => {
@@ -31,7 +43,7 @@ test("leaderboard refresh reuses a discovered message and survives a site failur
   const state = await createStateFile();
   try {
   let edits = 0; let sends = 0;
-  const message = { id: "legacy", author: { id: "bot" }, edit: async () => { edits += 1; }, embeds: [{ footer: { text: "londo-leaderboard-v1" } }] };
+  const message = { id: "legacy", author: { id: "bot" }, edit: async () => { edits += 1; }, embeds: [{ footer: { text: "Обновляется автоматически · LONDO" } }] };
   const channel = { id: "channel", isSendable: () => true, isTextBased: () => true, messages: { fetch: async (id?: string | object) => typeof id === "string" ? message : { find: () => message } }, send: async () => { sends += 1; return { id: "created" }; } };
   const guild = { id: "guild", channels: { fetch: async () => channel }, client: { user: { id: "bot" } } } as unknown as Guild;
   const manager = new LeaderboardManager(guild, { channelId: "111111111111111111", messageId: null }, config, async () => new Response(JSON.stringify(data), { status: 200 }), 300_000, state.path);
@@ -46,14 +58,36 @@ test("scheduled refresh is throttled and does not create duplicate leaderboard m
   const state = await createStateFile();
   try {
   let edits = 0;
-  const message = { id: "legacy", author: { id: "bot" }, edit: async () => { edits += 1; }, embeds: [{ footer: { text: "londo-leaderboard-v1" } }] };
+  const message = { id: "legacy", author: { id: "bot" }, edit: async () => { edits += 1; }, embeds: [{ footer: { text: "Обновляется автоматически · LONDO" } }] };
   const channel = { id: "channel", isSendable: () => true, isTextBased: () => true, messages: { fetch: async () => ({ find: () => message }) }, send: async () => ({ id: "created" }) };
   const guild = { id: "guild", channels: { fetch: async () => channel }, client: { user: { id: "bot" } } } as unknown as Guild;
   const manager = new LeaderboardManager(guild, { channelId: "111111111111111111", messageId: null }, config, async () => new Response(JSON.stringify(data), { status: 200 }), 5, state.path);
   manager.start();
-  await new Promise((resolve) => setTimeout(resolve, 25));
+  await waitForSavedMessage(state.path);
   manager.stop();
   assert.equal(edits, 1);
+  } finally { await state.cleanup(); }
+});
+
+test("leaderboard refresh recognizes messages with the current publication footer after restart", async () => {
+  const state = await createStateFile();
+  try {
+    let edits = 0;
+    let sends = 0;
+    const message = { id: "previous", author: { id: "bot" }, edit: async () => { edits += 1; }, embeds: [{ footer: { text: "Обновляется автоматически · LONDO" } }] };
+    const channel = {
+      id: "channel",
+      isSendable: () => true,
+      isTextBased: () => true,
+      messages: { fetch: async (id?: string | object) => typeof id === "string" ? message : { find: () => message } },
+      send: async () => { sends += 1; return { id: "new" }; },
+    };
+    const guild = { id: "guild", channels: { fetch: async () => channel }, client: { user: { id: "bot" } } } as unknown as Guild;
+    const manager = new LeaderboardManager(guild, { channelId: "111111111111111111", messageId: null }, config, async () => new Response(JSON.stringify(data), { status: 200 }), 300_000, state.path);
+    assert.equal(await manager.refresh(true), true);
+    assert.equal(edits, 1);
+    assert.equal(sends, 0);
+    assert.equal(createLeaderboardEmbed(data).toJSON().footer?.text, "Обновляется автоматически · LONDO");
   } finally { await state.cleanup(); }
 });
 

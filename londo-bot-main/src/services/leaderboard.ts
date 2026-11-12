@@ -6,6 +6,7 @@ import type { LeaderboardConfig } from "../types/family.js";
 import { logInfo, logWarning } from "../utils/logger.js";
 
 const MARKER = "londo-leaderboard-v1";
+const LEGACY_FOOTER = "Обновляется автоматически · LONDO";
 const SCHEDULE_MS = 300_000;
 const MIN_EDIT_MS = 60_000;
 const LIMIT = 10;
@@ -45,7 +46,7 @@ export function createLeaderboardEmbed(data: LeaderboardData, now = new Date()):
       { name: "🪙 Топ-10 по балансу коинов", value: coins.length ? coins.map((entry, index) => line(index, entry, "coins")).join("\n") : "Пока нет данных." },
       { name: "🎙️ Топ-10 по времени в голосовых каналах", value: voice.length ? voice.map((entry, index) => line(index, entry, "voice")).join("\n") : "Пока нет данных." },
     )
-    .setFooter({ text: "Обновляется автоматически · LONDO" })
+    .setFooter({ text: LEGACY_FOOTER })
     .setTimestamp(now);
 }
 
@@ -95,7 +96,7 @@ async function findExistingMessage(
     try { return await channel.messages.fetch(messageId); } catch { logWarning("[LEADERBOARD] Saved message was not found; checking for an older panel."); }
   }
   const recent = await channel.messages.fetch({ limit: 100 });
-  return recent.find((message) => message.author.id === botId && message.embeds.some((embed) => embed.footer?.text === MARKER)) ?? null;
+  return recent.find((message) => message.author.id === botId && message.embeds.some((embed) => embed.footer?.text === MARKER || embed.footer?.text === LEGACY_FOOTER)) ?? null;
 }
 
 export class LeaderboardManager {
