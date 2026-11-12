@@ -7,7 +7,7 @@ import { promotionsManager, type PromotionsManager } from "./services/promotions
 import { Events, type Client, type Guild, type GuildMember, type PartialGuildMember } from "discord.js";
 import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
-import { loadApplicationConfig, loadDiscordConfig, loadGuideConfig, loadInternalApiSecret, loadLeaderboardConfig, loadTwitchAnnouncementConfig, loadTwitchConfig, loadVoiceConfig, loadWelcomeConfig } from "./config/discord.js";
+import { loadApplicationConfig, loadDiscordConfig, loadGuideConfig, loadInternalApiSecret, loadLeaderboardConfig, loadTemporaryVoiceConfig, loadTwitchAnnouncementConfig, loadTwitchConfig, loadVoiceConfig, loadWelcomeConfig } from "./config/discord.js";
 import { loadSiteLogConfig } from "./config/siteLogs.js";
 import { createDiscordClient } from "./discord.js";
 import { FamilyRoleNotFoundError, getConfiguredGuild, GuildNotFoundError } from "./services/guild.js";
@@ -227,10 +227,17 @@ async function start(): Promise<void> {
   client.once(Events.ClientReady, async (readyClient) => {
     try {
       const guild = await getConfiguredGuild(readyClient, config);
-      temporaryVoiceManager = new TemporaryVoiceManager(guild);
-      await temporaryVoiceManager.start().catch((error: unknown) => {
+      try {
+        const temporaryVoiceConfig = loadTemporaryVoiceConfig();
+        if (temporaryVoiceConfig) {
+          temporaryVoiceManager = new TemporaryVoiceManager(guild, temporaryVoiceConfig);
+          await temporaryVoiceManager.start();
+        } else {
+          logWarning("[TEMP VOICE] Channel IDs are not configured; temporary voice rooms are disabled.");
+        }
+      } catch (error) {
         logWarning(`[TEMP VOICE] Initialization failed: ${error instanceof Error ? error.message : "unknown error"}.`);
-      });
+      }
       // Fetch the guild roster once, then filter the active family from the same snapshot.
       const accessObservedAt = new Date().toISOString();
       const members = await guild.members.fetch();

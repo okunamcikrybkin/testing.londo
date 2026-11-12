@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChannelType, Collection, OverwriteType, PermissionFlagsBits, PermissionsBitField, type Guild, type Interaction, type VoiceChannel, type VoiceState } from "discord.js";
-import { createTemporaryVoicePanel, TEMPORARY_VOICE_CATEGORY_ID, TEMPORARY_VOICE_DELETE_DELAY_MS, TemporaryVoiceManager, temporaryVoiceOwnerId } from "./temporaryVoice.js";
+import { loadTemporaryVoiceConfig } from "../config/discord.js";
+import { createTemporaryVoicePanel, TEMPORARY_VOICE_DELETE_DELAY_MS, TemporaryVoiceManager, temporaryVoiceOwnerId } from "./temporaryVoice.js";
+
+const TEST_CONFIG = {
+  panelChannelId: "1545123267113918573",
+  triggerChannelId: "1545123267113918574",
+  categoryId: "1545123267113918572",
+};
 
 test("temporary voice panel exposes all room controls across valid action rows", () => {
   const panel = createTemporaryVoicePanel();
@@ -46,6 +53,34 @@ test("managed room owner is identified only by an explicit member permission ove
   assert.equal(temporaryVoiceOwnerId(channel), "owner");
 });
 
+test("temporary voice channel IDs load from environment and reject partial or invalid settings", () => {
+  const keys = [
+    "TEMPORARY_VOICE_PANEL_CHANNEL_ID",
+    "TEMPORARY_VOICE_TRIGGER_CHANNEL_ID",
+    "TEMPORARY_VOICE_CATEGORY_ID",
+  ] as const;
+  const previous = keys.map((key) => process.env[key]);
+  try {
+    keys.forEach((key, index) => { process.env[key] = Object.values(TEST_CONFIG)[index]; });
+    assert.deepEqual(loadTemporaryVoiceConfig(), TEST_CONFIG);
+
+    delete process.env.TEMPORARY_VOICE_PANEL_CHANNEL_ID;
+    delete process.env.TEMPORARY_VOICE_TRIGGER_CHANNEL_ID;
+    delete process.env.TEMPORARY_VOICE_CATEGORY_ID;
+    assert.equal(loadTemporaryVoiceConfig(), null);
+
+    process.env.TEMPORARY_VOICE_PANEL_CHANNEL_ID = TEST_CONFIG.panelChannelId;
+    assert.throws(() => loadTemporaryVoiceConfig(), /configuration is incomplete/i);
+    process.env.TEMPORARY_VOICE_TRIGGER_CHANNEL_ID = "invalid";
+    assert.throws(() => loadTemporaryVoiceConfig(), /Invalid Discord ID configured/);
+  } finally {
+    keys.forEach((key, index) => {
+      if (previous[index] === undefined) delete process.env[key];
+      else process.env[key] = previous[index];
+    });
+  }
+});
+
 test("room without a member management overwrite is not treated as a temporary room", () => {
   const channel = {
     permissionOverwrites: {
@@ -69,7 +104,7 @@ test("empty managed rooms are rechecked and deleted after the one-minute grace p
   const room = {
     id: "123456789012345678",
     type: ChannelType.GuildVoice,
-    parentId: TEMPORARY_VOICE_CATEGORY_ID,
+    parentId: TEST_CONFIG.categoryId,
     members: new Collection(),
     permissionOverwrites: {
       cache: new Collection([
@@ -87,7 +122,7 @@ test("empty managed rooms are rechecked and deleted after the one-minute grace p
     id: "guild",
     channels: { fetch: async (id: string) => id === room.id ? room : null },
   } as unknown as Guild;
-  const manager = new TemporaryVoiceManager(guild);
+  const manager = new TemporaryVoiceManager(guild, TEST_CONFIG);
   const originalSetTimeout = globalThis.setTimeout;
   const originalClearTimeout = globalThis.clearTimeout;
   globalThis.setTimeout = ((callback: () => void, delay: number) => {
@@ -130,7 +165,7 @@ test("room name and participant limit forms read their configured input and appl
     const room = {
       id: "123456789012345678",
       type: ChannelType.GuildVoice,
-      parentId: TEMPORARY_VOICE_CATEGORY_ID,
+      parentId: TEST_CONFIG.categoryId,
       permissionOverwrites: {
         cache: new Collection([
           ["owner", {
@@ -150,7 +185,7 @@ test("room name and participant limit forms read their configured input and appl
       members: { fetch: async () => member },
       channels: { fetch: async () => room },
     } as unknown as Guild;
-    const manager = new TemporaryVoiceManager(guild);
+    const manager = new TemporaryVoiceManager(guild, TEST_CONFIG);
     const replies: unknown[] = [];
     const interaction = {
       customId: `londo:tempvoice:modal:${action}:123456789012345678`,

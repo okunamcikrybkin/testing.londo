@@ -22,11 +22,9 @@ import {
   type VoiceChannel,
   type VoiceState,
 } from "discord.js";
+import type { TemporaryVoiceConfig } from "../types/family.js";
 import { logInfo, logWarning } from "../utils/logger.js";
 
-export const TEMPORARY_VOICE_PANEL_CHANNEL_ID = "1545123267113918573";
-export const TEMPORARY_VOICE_TRIGGER_CHANNEL_ID = "1545123267113918574";
-export const TEMPORARY_VOICE_CATEGORY_ID = "1545123267113918572";
 export const TEMPORARY_VOICE_DELETE_DELAY_MS = 60_000;
 
 const PANEL_MARKER = "londo-temporary-voice-panel";
@@ -97,13 +95,13 @@ export class TemporaryVoiceManager {
   private readonly deletionTimers = new Map<string, NodeJS.Timeout>();
   private readonly pendingOwners = new Set<string>();
 
-  constructor(private readonly guild: Guild) {}
+  constructor(private readonly guild: Guild, private readonly config: TemporaryVoiceConfig) {}
 
   async start(): Promise<void> {
     const [trigger, category, panel] = await Promise.all([
-      this.guild.channels.fetch(TEMPORARY_VOICE_TRIGGER_CHANNEL_ID),
-      this.guild.channels.fetch(TEMPORARY_VOICE_CATEGORY_ID),
-      this.guild.channels.fetch(TEMPORARY_VOICE_PANEL_CHANNEL_ID),
+      this.guild.channels.fetch(this.config.triggerChannelId),
+      this.guild.channels.fetch(this.config.categoryId),
+      this.guild.channels.fetch(this.config.panelChannelId),
       this.guild.channels.fetch(),
     ]);
 
@@ -166,7 +164,7 @@ export class TemporaryVoiceManager {
       const newChannel = await this.guild.channels.fetch(newState.channelId);
       if (newChannel?.type === ChannelType.GuildVoice && this.isManagedRoom(newChannel)) this.cancelDeletion(newChannel.id);
     }
-    if (newState.channelId === TEMPORARY_VOICE_TRIGGER_CHANNEL_ID && oldState.channelId !== newState.channelId) {
+    if (newState.channelId === this.config.triggerChannelId && oldState.channelId !== newState.channelId) {
       await this.createOrMoveMember(newState.id);
     }
   }
@@ -204,7 +202,7 @@ export class TemporaryVoiceManager {
     if (!channel || typeof channel !== "object" || !("type" in channel) || !("parentId" in channel)) return false;
     const voice = channel as VoiceChannel;
     return voice.type === ChannelType.GuildVoice
-      && voice.parentId === TEMPORARY_VOICE_CATEGORY_ID
+      && voice.parentId === this.config.categoryId
       && temporaryVoiceOwnerId(voice) !== null;
   }
 
@@ -248,7 +246,7 @@ export class TemporaryVoiceManager {
       const room = await this.guild.channels.create({
         name: roomName(member.displayName),
         type: ChannelType.GuildVoice,
-        parent: TEMPORARY_VOICE_CATEGORY_ID,
+        parent: this.config.categoryId,
         permissionOverwrites: [
           {
             id: this.guild.id,

@@ -27,6 +27,12 @@ export type ApplicationEmojiIds = Record<Family, string | null>;
 
 export type VoiceConfig = { afkChannelId: string | null };
 
+export type TemporaryVoiceConfig = {
+  panelChannelId: string;
+  triggerChannelId: string;
+  categoryId: string;
+};
+
 export type LeaderboardConfig = {
   channelId: string | null;
   messageId: string | null;

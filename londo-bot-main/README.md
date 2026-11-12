@@ -18,8 +18,8 @@ Discord bot for LONDO server automation, including roster discovery and temporar
 
 ## Temporary voice rooms
 
-The bot automatically maintains the settings panel in text channel `1545123267113918573`. Joining voice channel `1545123267113918574` creates or reopens the member's room in category `1545123267113918572`. Empty rooms are deleted after one minute.
+The bot automatically maintains the settings panel in the channel configured by `TEMPORARY_VOICE_PANEL_CHANNEL_ID`. Joining `TEMPORARY_VOICE_TRIGGER_CHANNEL_ID` creates or reopens the member's room in `TEMPORARY_VOICE_CATEGORY_ID`. Empty rooms are deleted after one minute.
 
-No additional environment variables are required. The bot needs **Manage Channels**, **Move Members**, and **Create Instant Invite** on the server, plus permission to view, connect to, create invites, manage channels, and move members in the temporary-room category. In the trigger channel, it needs **Move Members**. In the panel channel, it needs **View Channel**, **Send Messages**, **Embed Links**, and **Read Message History**.
+Set all three channel IDs in the hosting environment; the supplied values are in `.env.example`. The feature is disabled if all three are empty, and a partial or invalid configuration is reported at startup. The bot needs **Manage Channels**, **Move Members**, and **Create Instant Invite** on the server, plus permission to view, connect to, create invites, manage channels, and move members in the temporary-room category. In the trigger channel, it needs **Move Members**. In the panel channel, it needs **View Channel**, **Send Messages**, **Embed Links**, and **Read Message History**.
 
 The panel provides controls for room name, participant limit, visibility, entry lock, voice chat, access, kicking, invites, region, waiting mode, ownership transfer, and deletion. Room owners and server administrators can use it.

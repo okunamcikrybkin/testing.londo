@@ -1,5 +1,5 @@
 import "dotenv/config";
-import type { ApplicationConfig, ApplicationEmojiIds, DiscordConfig, GuideConfig, LeaderboardConfig, TwitchAnnouncementConfig, TwitchConfig, VoiceConfig, WelcomeConfig } from "../types/family.js";
+import type { ApplicationConfig, ApplicationEmojiIds, DiscordConfig, GuideConfig, LeaderboardConfig, TemporaryVoiceConfig, TwitchAnnouncementConfig, TwitchConfig, VoiceConfig, WelcomeConfig } from "../types/family.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -91,6 +91,22 @@ export function loadApplicationEmojiIds(): ApplicationEmojiIds {
 }
 
 export function loadVoiceConfig(): VoiceConfig { return { afkChannelId: optionalDiscordId("FAMILY_AFK_CHANNEL_ID") }; }
+
+export function loadTemporaryVoiceConfig(): TemporaryVoiceConfig | null {
+  const panelChannelId = optionalDiscordId("TEMPORARY_VOICE_PANEL_CHANNEL_ID");
+  const triggerChannelId = optionalDiscordId("TEMPORARY_VOICE_TRIGGER_CHANNEL_ID");
+  const categoryId = optionalDiscordId("TEMPORARY_VOICE_CATEGORY_ID");
+
+  if (!panelChannelId && !triggerChannelId && !categoryId) return null;
+  if (!panelChannelId || !triggerChannelId || !categoryId) {
+    throw new Error("Temporary voice configuration is incomplete. Set all three TEMPORARY_VOICE_*_ID variables.");
+  }
+  if (new Set([panelChannelId, triggerChannelId, categoryId]).size !== 3) {
+    throw new Error("Temporary voice channel IDs must be distinct.");
+  }
+
+  return { panelChannelId, triggerChannelId, categoryId };
+}
 
 /** Leaderboard remains optional so a missing channel never blocks bot startup. */
 export function loadLeaderboardConfig(): LeaderboardConfig {
