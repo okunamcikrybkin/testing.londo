@@ -22,6 +22,7 @@ import { nicknameGuard } from "./services/nicknameGuard.js";
 import { resolveNicknameActor } from "./services/nicknameAudit.js";
 import { sendVoiceOperation } from "./services/voiceClient.js";
 import { VoiceTracker } from "./services/voiceTracker.js";
+import { TemporaryVoiceManager } from "./services/temporaryVoice.js";
 import { LeaderboardManager, setupLeaderboard } from "./services/leaderboard.js";
 import { checkWelcomeChannel, sendLeave, sendWelcome, testWelcome } from "./services/welcome.js";
 import { publishGuide } from "./services/guide.js";
@@ -134,8 +135,9 @@ async function start(): Promise<void> {
   let shopManager: ShopManager | null = null;
   let giveawayManager: GiveawayManager | null = null;
   let birthdayManager: BirthdayManager | null = null;
+  let temporaryVoiceManager: TemporaryVoiceManager | null = null;
   installLifecycleDiagnostics(() => ({ discordReady: client.isReady(), internalApiListening: internalApiServer?.listening ?? false }));
-  installGracefulShutdown(client, () => internalApiServer, async () => { if (voiceCheckpoint) clearInterval(voiceCheckpoint); if (rosterReconciliation) clearInterval(rosterReconciliation); memberSyncScheduler?.dispose(); leaderboardManager?.stop(); twitchWatcher?.stop(); birthdayManager?.stop(); giveawayManager?.stop(); shopManager?.stop(); afkManager?.stop(); promotions?.stop(); notifications?.stop(); if (voiceTracker) await voiceTracker.checkpoint(); });
+  installGracefulShutdown(client, () => internalApiServer, async () => { if (voiceCheckpoint) clearInterval(voiceCheckpoint); if (rosterReconciliation) clearInterval(rosterReconciliation); memberSyncScheduler?.dispose(); leaderboardManager?.stop(); twitchWatcher?.stop(); birthdayManager?.stop(); temporaryVoiceManager?.stop(); giveawayManager?.stop(); shopManager?.stop(); afkManager?.stop(); promotions?.stop(); notifications?.stop(); if (voiceTracker) await voiceTracker.checkpoint(); });
 
   client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
     if (newMember.guild.id !== config.guildId) return;
@@ -157,7 +159,13 @@ async function start(): Promise<void> {
       }
     }
   });
-  client.on(Events.VoiceStateUpdate, (_oldState, newState) => { if (newState.guild.id === config.guildId && voiceTracker) void voiceTracker.reconcile(voiceCandidates(newState.guild)); });
+  client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+    if (newState.guild.id !== config.guildId) return;
+    if (voiceTracker) void voiceTracker.reconcile(voiceCandidates(newState.guild));
+    if (temporaryVoiceManager) void temporaryVoiceManager.handleVoiceStateUpdate(oldState, newState).catch((error: unknown) => {
+      logWarning(`[TEMP VOICE] Voice-state handling failed: ${error instanceof Error ? error.name : "unknown error"}.`);
+    });
+  });
   client.on(Events.GuildMemberAdd, (member) => {
     if (member.guild.id !== config.guildId) return;
     if (siteLogConfig) void sendAccessObservations(siteLogConfig, [observeAccess(member, "ROLE_UPDATE")]);
@@ -219,6 +227,10 @@ async function start(): Promise<void> {
   client.once(Events.ClientReady, async (readyClient) => {
     try {
       const guild = await getConfiguredGuild(readyClient, config);
+      temporaryVoiceManager = new TemporaryVoiceManager(guild);
+      await temporaryVoiceManager.start().catch((error: unknown) => {
+        logWarning(`[TEMP VOICE] Initialization failed: ${error instanceof Error ? error.message : "unknown error"}.`);
+      });
       // Fetch the guild roster once, then filter the active family from the same snapshot.
       const accessObservedAt = new Date().toISOString();
       const members = await guild.members.fetch();
@@ -279,6 +291,7 @@ async function start(): Promise<void> {
 
         readyClient.on(Events.InteractionCreate, async (interaction) => {
         try {
+          if (temporaryVoiceManager && await temporaryVoiceManager.handleInteraction(interaction)) return;
           if (notifications && await notifications.handleInteraction(interaction)) return;
           if (interaction.isChatInputCommand() && interaction.commandName === "setup-applications") {
             if (!applicationConfig) { await interaction.reply({ content: "Flow заявок не настроен: проверьте application ENV variables.", ephemeral: true }); return; }
