@@ -14,7 +14,7 @@ test("legacy select/button/open modal all return migration reply without submiss
 });
 test("missing URL skips publication including on repeated startup",async()=>{const old=process.env.PUBLIC_SITE_URL;delete process.env.PUBLIC_SITE_URL;try{const guild={} as Guild;assert.equal(await ensureApplicationPanel(guild,"channel"),null);assert.equal(await ensureApplicationPanel(guild,"channel"),null);}finally{if(old!==undefined)process.env.PUBLIC_SITE_URL=old;}});
 test("membership does not require roles and distinguishes unknown member from outage",async()=>{
- for(const outcome of [null,10007,50013]){const guild={id:"1545123264605585438",members:{fetch:async()=>{if(outcome)throw {code:outcome};return {roles:[]};}}} as unknown as Guild;assert.deepEqual(await applicationMembership(guild,"1545123264626430067"),{status:outcome===null?"MEMBER":outcome===10007?"NOT_MEMBER":"UNAVAILABLE"});}
+ for(const outcome of [null,10007,50013]){const guild={id:process.env.DISCORD_GUILD_ID!,members:{fetch:async()=>{if(outcome)throw {code:outcome};return {roles:[]};}}} as unknown as Guild;assert.deepEqual(await applicationMembership(guild,"123456789012345678"),{status:outcome===null?"MEMBER":outcome===10007?"NOT_MEMBER":"UNAVAILABLE"});}
 });
 
 test("application nickname is kept whole and limited to Discord's 32-character nickname size",()=>{
@@ -24,9 +24,9 @@ test("application nickname is kept whole and limited to Discord's 32-character n
 });
 
 test("LONDO bot returns actual role IDs, excludes everyone, and never reads foreign guilds",async()=>{
- let calls=0;const guild={id:"1545123264605585438",members:{fetch:async()=>{calls++;return {roles:{cache:new Map([["1545123264605585438",{}],["1545123264626430067",{}]])}};}}} as unknown as Guild;
- assert.deepEqual(await applicationMemberRoles(guild,"1545123264626430067"),{status:"MEMBER",roles:["1545123264626430067"]});
- assert.deepEqual(await applicationMemberRoles({...guild,id:"other"} as Guild,"1545123264626430067"),{status:"UNAVAILABLE"});assert.equal(calls,1);
+ let calls=0;const guild={id:process.env.DISCORD_GUILD_ID!,members:{fetch:async()=>{calls++;return {roles:{cache:new Map([[process.env.DISCORD_GUILD_ID!,{}],[process.env.FAM_ROLE_ID!,{}]])}};}}} as unknown as Guild;
+ assert.deepEqual(await applicationMemberRoles(guild,"123456789012345678"),{status:"MEMBER",roles:[process.env.FAM_ROLE_ID]});
+ assert.deepEqual(await applicationMemberRoles({...guild,id:"other"} as Guild,"123456789012345678"),{status:"UNAVAILABLE"});assert.equal(calls,1);
  const failure={id:guild.id,members:{fetch:async()=>{throw {code:50001,status:403};}}} as unknown as Guild;
- assert.deepEqual(await applicationMemberRoles(failure,"1545123264626430067"),{status:"UNAVAILABLE",code:50001,httpStatus:403});
+ assert.deepEqual(await applicationMemberRoles(failure,process.env.FAM_ROLE_ID!),{status:"UNAVAILABLE",code:50001,httpStatus:403});
 });

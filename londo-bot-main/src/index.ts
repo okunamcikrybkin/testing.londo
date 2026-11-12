@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { startDiscordCheckRetention } from "./services/discordCheckRetention.js";
 import { BirthdayManager } from "./services/birthdays.js";
 import { accessRolesChanged, observeAccess, reconcileAccess, sendAccessObservations } from "./services/accessSync.js";
@@ -7,7 +8,7 @@ import { promotionsManager, type PromotionsManager } from "./services/promotions
 import { Events, type Client, type Guild, type GuildMember, type PartialGuildMember } from "discord.js";
 import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
-import { loadApplicationConfig, loadDiscordConfig, loadGuideConfig, loadInternalApiSecret, loadLeaderboardConfig, loadTemporaryVoiceConfig, loadTwitchAnnouncementConfig, loadTwitchConfig, loadVoiceConfig, loadWelcomeConfig } from "./config/discord.js";
+import { loadApplicationConfig, loadBirthdayConfig, loadDiscordConfig, loadGuideConfig, loadInternalApiSecret, loadLeaderboardConfig, loadTemporaryVoiceConfig, loadTwitchAnnouncementConfig, loadTwitchConfig, loadVoiceConfig, loadWelcomeConfig } from "./config/discord.js";
 import { loadSiteLogConfig } from "./config/siteLogs.js";
 import { createDiscordClient } from "./discord.js";
 import { FamilyRoleNotFoundError, getConfiguredGuild, GuildNotFoundError } from "./services/guild.js";
@@ -110,6 +111,7 @@ function logStartupError(error: unknown): void {
 
 async function start(): Promise<void> {
   const config = loadDiscordConfig();
+  const birthdayConfig = loadBirthdayConfig();
   const siteLogConfig = loadSiteLogConfig();
   const voiceConfig = loadVoiceConfig();
   const leaderboardConfig = loadLeaderboardConfig();
@@ -334,8 +336,12 @@ async function start(): Promise<void> {
         return;
       }
 
-      birthdayManager = new BirthdayManager(guild, siteLogConfig);
-      birthdayManager.start();
+      if (birthdayConfig) {
+        birthdayManager = new BirthdayManager(guild, siteLogConfig, birthdayConfig);
+        birthdayManager.start();
+      } else {
+        logWarning("[BIRTHDAY] Role and channel IDs are not configured; birthday feature disabled.");
+      }
 
       if (twitchConfig) {
         twitchWatcher = new TwitchStreamWatcher(guild, twitchConfig, siteLogConfig);

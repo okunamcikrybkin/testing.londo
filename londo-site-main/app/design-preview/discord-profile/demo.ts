@@ -1,4 +1,5 @@
 import { badgeEntitlements, defaultSettings, profileProjection, validateSettings, type ProfileData } from "@/lib/profile-customization/settings";
+import { FAMILY_RANKS } from "@/lib/rank-appearance/catalog";
 
 export const SCENARIOS = { MEMPHIS: "MEMPHIS", PHOENIX: "PHOENIX", BOTH: "Две семьи", PRIVATE: "Скрытые поля", EMPTY: "Пустой профиль" };
 export type Scenario = keyof typeof SCENARIOS;
@@ -7,11 +8,12 @@ export type Scenario = keyof typeof SCENARIOS;
 export function demoProfile(scenario: Scenario, owner: boolean) {
   const empty = scenario === "EMPTY";
   const families = empty ? [] : scenario === "BOTH" ? ["MEMPHIS", "PHOENIX"] : [scenario === "PHOENIX" ? "PHOENIX" : "MEMPHIS"];
-  const availableBadges = badgeEntitlements("MEMBER", families.map(family => ({ family, rankRoleId: "1545123264643473521" })));
+  const mainRoleId = FAMILY_RANKS.find(rank => rank.key === "MAIN")?.roleId ?? null;
+  const availableBadges = badgeEntitlements("MEMBER", families.map(family => ({ family, rankRoleId: mainRoleId })));
   const profile: ProfileData = {
     displayName: empty ? "Новый участник" : "Vofelion", avatarUrl: null,
     username: empty ? "new.member" : "vofelion.demo", gameNickname: empty ? null : "Vofelion Londo",
-    staticId: empty ? null : "566", discordId: "100000000000000001",
+    staticId: empty ? null : "566", discordId: "demo-discord-user",
     families, ranks: families.map(f => `${f} · Main`), coins: "1 250", voiceTime: "42 ч 18 мин", availableBadges,
   };
   const privateMode = scenario === "PRIVATE";

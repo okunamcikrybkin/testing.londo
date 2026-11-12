@@ -3,7 +3,7 @@ import { getDiscordMemberRoleIds } from "@/lib/discord/client";
 
 export type RequestableStaffRole = "RECRUIT" | "HIGH_STAFF";
 
-function configuredRoleIds(name: "DISCORD_RECRUIT_ROLE_IDS" | "DISCORD_HIGH_STAFF_ROLE_IDS"): string[] {
+export function configuredRoleIds(name: "DISCORD_RECRUIT_ROLE_IDS" | "DISCORD_HIGH_STAFF_ROLE_IDS"): string[] {
   return (process.env[name] ?? "").split(",").map((value) => value.trim()).filter(Boolean);
 }
 

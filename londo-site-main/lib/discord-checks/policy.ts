@@ -1,6 +1,6 @@
 export const CHECK_SCOPES = "identify guilds guilds.members.read";
 export const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-export const LONDO_GUILD_ID = "1545123264605585438";
+export function londoGuildId(): string { return process.env.DISCORD_GUILD_ID?.trim() ?? ""; }
 export type GuildResult = { id: string; name: string; icon: string | null; roles: string[] | null; roleStatus: "NOT_CHECKED" | "AVAILABLE" | "UNAVAILABLE" | "MISSING_SCOPE" | "API_ERROR" | "RATE_LIMITED" | "RECONSENT_REQUIRED"; roleHttpStatus?: number; roleErrorCode?: number; roleSource?: "OAUTH" | "BOT"; roleCheckedAt?: string; roleRetryAt?: string; roleNames?: Record<string,string> };
 export function matchGuilds(guilds: GuildResult[], watchlist: { guildId: string; enabled: boolean }[]) {
   const ids = new Set(watchlist.filter(row => row.enabled).map(row => row.guildId));

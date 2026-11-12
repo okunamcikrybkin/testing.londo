@@ -10,7 +10,8 @@ const keys = new Set([
   "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT",
 ]);
 const accessRankIds = FAMILY_RANKS.filter(rank => keys.has(rank.key) || ["MAIN","LONDEST_LONDO","LONDO","YOUNG_LONDO","BABY_LONDO","NEWBIE"].includes(rank.key)).map(rank => rank.roleId);
-function accessRoleIds(){return new Set([...accessRankIds,...[process.env.FAM_ROLE_ID,process.env.MEMPHIS_ROLE_ID].filter((id):id is string=>Boolean(id))]);}
+function configuredStaffRoleIds(){return ["DISCORD_RECRUIT_ROLE_IDS","DISCORD_HIGH_STAFF_ROLE_IDS"].flatMap(name=>(process.env[name]??"").split(",").map(id=>id.trim()).filter(id=>/^\d{17,20}$/.test(id)));}
+function accessRoleIds(){return new Set([...accessRankIds,...[process.env.FAM_ROLE_ID,process.env.MEMPHIS_ROLE_ID,process.env.PHOENIX_ROLE_ID].filter((id):id is string=>Boolean(id)),...configuredStaffRoleIds()]);}
 export function accessRolesChanged(before: Iterable<string>, after: Iterable<string>): boolean {
   const watched=accessRoleIds();
   const key = (ids: Iterable<string>) => [...ids].filter(id => watched.has(id)).sort().join(",");

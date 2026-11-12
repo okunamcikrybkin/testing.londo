@@ -4,7 +4,7 @@ import {readMemberRoles} from "./member-roles";
 import {roleMessage} from "./role-display";
 import {RoleQueue} from "./role-queue";
 import {hasFreshRoles,visibleRoles,ROLE_CACHE_MS,type GuildResult} from "./policy";
-const id="1545123264605585439";
+const id=process.env.DISCORD_GUILD_ID!;
 const row:GuildResult={id,name:"Test",icon:null,roles:null,roleStatus:"NOT_CHECKED"};
 test("on-demand member request uses Bearer and preserves IDs and genuine empty roles",async()=>{
  for(const roles of [[],[id]]){const result=await readMemberRoles(row,"test-token","guilds guilds.members.read",new RoleQueue(),async(input,init)=>{
@@ -26,7 +26,7 @@ test("queue deduplicates concurrent calls and successful cache expires",async()=
 test("Retry-After pauses all guild role requests without retry storm or caching false empty",async()=>{
  let now=0,calls=0;const queue=new RoleQueue(()=>now);const transport:typeof fetch=async()=>{calls++;return Response.json({retry_after:3},{status:429,headers:{"Retry-After":"5","X-RateLimit-Reset-After":"4"}});};
  assert.equal((await readMemberRoles(row,"test","guilds.members.read",queue,transport)).roleStatus,"RATE_LIMITED");now=4999;
- assert.equal((await readMemberRoles({...row,id:"1545123264605585440"},"test","guilds.members.read",queue,transport)).roleStatus,"RATE_LIMITED");assert.equal(calls,1);
+ assert.equal((await readMemberRoles({...row,id:"other-guild"},"test","guilds.members.read",queue,transport)).roleStatus,"RATE_LIMITED");assert.equal(calls,1);
  now=5000;const success=await readMemberRoles(row,"test","guilds.members.read",queue,async()=>{calls++;return Response.json({roles:[id]});});assert.equal(calls,2);assert.deepEqual(success.roles,[id]);
 });
 test("remaining zero observes fractional Reset-After before next request",async()=>{

@@ -2,8 +2,6 @@ import type { Guild, Role } from "discord.js";
 import type { SiteLogConfig } from "../config/siteLogs.js";
 import { logInfo, logWarning } from "../utils/logger.js";
 
-const BIRTHDAY_ROLE_ID = "1545123264655794260";
-const BIRTHDAY_CHANNEL_ID = "1545123266170060909";
 const BIRTHDAY_TIME_ZONE = process.env.BIRTHDAY_TIME_ZONE?.trim() || "Asia/Yekaterinburg";
 const TICK_MS = 5 * 60 * 1000;
 const ROLE_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -41,7 +39,7 @@ async function loadBirthdays(config: SiteLogConfig, date: Date): Promise<Birthda
   return { users, activeRoles };
 }
 
-async function sendBirthdayAction(config: SiteLogConfig, action: "CELEBRATED" | "ROLE_GRANTED" | "ROLE_REMOVED", discordId: string, extra: { year: number } | { grantedAt: string } | {} = {}): Promise<boolean> {
+async function sendBirthdayAction(config: SiteLogConfig, action: "CELEBRATED" | "ROLE_GRANTED" | "ROLE_REMOVED", discordId: string, extra: { year: number } | { grantedAt: string } | Record<string, never> = {}): Promise<boolean> {
   const response = await fetch(new URL("/api/internal/birthdays", config.siteUrl), {
     body: JSON.stringify({ action, discordId, ...extra }),
     headers: { "content-type": "application/json", "x-londo-bot-secret": config.apiSecret },
@@ -58,7 +56,7 @@ export class BirthdayManager {
   #expirationTimers = new Map<string, NodeJS.Timeout>();
   #grantTimes = new Map<string, number>();
 
-  constructor(private readonly guild: Guild, private readonly siteConfig: SiteLogConfig) {}
+  constructor(private readonly guild: Guild, private readonly siteConfig: SiteLogConfig, private readonly config: { roleId: string; channelId: string }) {}
 
   start(): void {
     if (this.#timer) return;
@@ -142,7 +140,7 @@ export class BirthdayManager {
     try {
       const today = dateInZone(now);
       const snapshot = await loadBirthdays(this.siteConfig, now);
-      const role = await this.guild.roles.fetch(BIRTHDAY_ROLE_ID);
+      const role = await this.guild.roles.fetch(this.config.roleId);
       if (!role || role.managed || !role.editable) throw new Error("birthday role is unavailable or not assignable");
 
       const activeIds = new Set(snapshot.activeRoles.map((grant) => grant.discordId));
@@ -166,7 +164,7 @@ export class BirthdayManager {
       let sendableChannel = null;
       if (channelNeeded) {
         try {
-          const channel = await this.guild.channels.fetch(BIRTHDAY_CHANNEL_ID);
+          const channel = await this.guild.channels.fetch(this.config.channelId);
           if (channel?.isTextBased() && !channel.isDMBased() && channel.isSendable()) sendableChannel = channel;
         } catch { /* Role expiry and grants still proceed if the greeting channel is unavailable. */ }
       }

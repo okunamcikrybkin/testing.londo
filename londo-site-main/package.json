@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:faction-roles-db": "tsx scripts/faction-roles-integration.ts",
-    "test": "tsx --test lib/giveaways/*.test.ts lib/shop/*.test.ts lib/afk/*.test.ts lib/roulette/*.test.ts lib/economy/*.test.ts lib/promotions/*.test.ts lib/faction-roles/*.test.ts lib/notifications/*.test.ts lib/profile-customization/*.test.ts lib/rank-appearance/*.test.ts lib/access/*.test.ts lib/roster/*.test.ts lib/applications/*.test.ts lib/discord-checks/*.test.ts"
+    "test": "tsx --import ./test-environment.ts --test lib/giveaways/*.test.ts lib/shop/*.test.ts lib/afk/*.test.ts lib/roulette/*.test.ts lib/economy/*.test.ts lib/promotions/*.test.ts lib/faction-roles/*.test.ts lib/notifications/*.test.ts lib/profile-customization/*.test.ts lib/rank-appearance/*.test.ts lib/access/*.test.ts lib/roster/*.test.ts lib/applications/*.test.ts lib/discord-checks/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

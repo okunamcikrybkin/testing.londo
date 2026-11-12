@@ -1,24 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {DEFAULT_MEMBERSHIP_ROLES as roles,FAMQ_RANK_IDS,resolveFamqFamilies} from "./famq";
+import {FAMQ_RANK_IDS,membershipRoleIds,resolveFamqFamilies} from "./famq";
 import {sessionStaffState} from "./session-policy";
 import {canUseFeature,FEATURE_ACCESS,navigationForAccess,featureForPage} from "../permissions/features";
+const roles=membershipRoleIds();
 for(const rank of FAMQ_RANK_IDS)test(`FAM + MEMPHIS + rank ${rank} resolves FAMQ`,()=>assert.deepEqual(resolveFamqFamilies([roles.fam,roles.memphis,rank],roles),["MEMPHIS"]));
 test("family scopes require FAM, membership and an ordinary rank together",()=>{
  const rank=FAMQ_RANK_IDS[0];
- assert.deepEqual(resolveFamqFamilies([roles.fam,roles.phoenix,rank],roles),["PHOENIX"]);
- assert.deepEqual(resolveFamqFamilies([roles.fam,roles.memphis,roles.phoenix,rank],roles),["MEMPHIS","PHOENIX"]);
- for(const ids of [[roles.memphis,rank],[roles.phoenix,rank],[roles.fam,rank],[roles.fam,roles.memphis],[roles.fam,roles.phoenix,"1545123264643473523"],[],null])assert.deepEqual(resolveFamqFamilies(ids,roles),[]);
+ assert.deepEqual(resolveFamqFamilies([roles.fam,roles.memphis,rank],roles),["MEMPHIS"]);
+ for(const ids of [[roles.memphis,rank],[roles.fam,rank],[roles.fam,roles.memphis],[roles.fam,process.env.PHOENIX_RECRUIT_ROLE_ID,rank],[],null])assert.deepEqual(resolveFamqFamilies(ids,roles),[]);
 });
 test("PIN gating and staff revocation preserve independent base membership",()=>{
- const user={role:"RECRUIT" as const,accessSnapshot:{roleIds:[roles.fam,roles.phoenix,FAMQ_RANK_IDS[0]]},staffAccessGrants:[{role:"RECRUIT" as const,memphisRole:"USER" as const,phoenixRole:"RECRUIT" as const}],staffAccessCredential:{pinSetAt:new Date(),credentialVersion:1}};
+ const user={role:"RECRUIT" as const,accessSnapshot:{roleIds:[roles.fam,roles.memphis,FAMQ_RANK_IDS[0]]},staffAccessGrants:[{role:"RECRUIT" as const,memphisRole:"RECRUIT" as const,phoenixRole:"USER" as const}],staffAccessCredential:{pinSetAt:new Date(),credentialVersion:1}};
  const session={user,staffPinVerifiedAt:null,staffPinCredentialVersion:null};
  const locked=sessionStaffState(session,false);
  assert.deepEqual(locked.famqFamilies,["PHOENIX"]);assert.equal(locked.role,"USER");assert.equal(locked.pinRequired,true);
- assert.equal(locked.baseFamilyAccess.MEMPHIS,"USER");assert.equal(locked.baseFamilyAccess.PHOENIX,"FAMQ");
+ assert.equal(locked.baseFamilyAccess.MEMPHIS,"FAMQ");assert.equal(locked.baseFamilyAccess.PHOENIX,"USER");
  const verified=sessionStaffState({...session,staffPinVerifiedAt:new Date(),staffPinCredentialVersion:1},false);assert.equal(verified.role,"RECRUIT");assert.equal(verified.pinRequired,false);
  const revoked=sessionStaffState({...session,user:{...user,role:"USER",staffAccessGrants:[]}},false);assert.deepEqual(revoked.famqFamilies,["PHOENIX"]);assert.equal(revoked.pinRequired,false);
- const removed=sessionStaffState({...session,user:{...user,accessSnapshot:{roleIds:[roles.phoenix,FAMQ_RANK_IDS[0]]},staffAccessGrants:[]}},false);assert.deepEqual(removed.famqFamilies,[]);
+ const removed=sessionStaffState({...session,user:{...user,accessSnapshot:{roleIds:[roles.memphis,FAMQ_RANK_IDS[0]]},staffAccessGrants:[]}},false);assert.deepEqual(removed.famqFamilies,[]);
 });
 test("complete six-level matrix agrees with navigation",()=>{
  const levels=["USER","FAMQ","RECRUIT","HIGH_STAFF","OWNER","FULL_ACCESS"] as const;

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import type { ApplicationConfig, ApplicationEmojiIds, DiscordConfig, GuideConfig, LeaderboardConfig, TemporaryVoiceConfig, TwitchAnnouncementConfig, TwitchConfig, VoiceConfig, WelcomeConfig } from "../types/family.js";
+import { FAMILY_RANK_ENV_NAMES } from "./familyRanks.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -45,13 +46,15 @@ function optionalHttpUrl(name: string): string | null {
 }
 
 export function loadDiscordConfig(): DiscordConfig {
+  for (const name of FAMILY_RANK_ENV_NAMES) discordId(name);
+  discordId("PHOENIX_RECRUIT_ROLE_ID");
   const roles = {
     fam: discordId("FAM_ROLE_ID"),
     memphis: discordId("MEMPHIS_ROLE_ID"),
-    phoenix: "",
+    phoenix: optionalDiscordId("PHOENIX_ROLE_ID") ?? "",
   };
 
-  if (new Set([roles.fam, roles.memphis]).size !== 2) {
+  if (new Set(Object.values(roles).filter(Boolean)).size !== Object.values(roles).filter(Boolean).length) {
     throw new Error("Family role IDs must be distinct.");
   }
 
@@ -60,6 +63,14 @@ export function loadDiscordConfig(): DiscordConfig {
     guildId: discordId("DISCORD_GUILD_ID"),
     roles,
   };
+}
+
+export function loadBirthdayConfig(): { roleId: string; channelId: string } | null {
+  const roleId = optionalDiscordId("BIRTHDAY_ROLE_ID");
+  const channelId = optionalDiscordId("BIRTHDAY_CHANNEL_ID");
+  if (!roleId && !channelId) return null;
+  if (!roleId || !channelId) throw new Error("Birthday configuration is incomplete. Set both BIRTHDAY_ROLE_ID and BIRTHDAY_CHANNEL_ID.");
+  return { roleId, channelId };
 }
 
 export function loadInternalApiSecret(): string {

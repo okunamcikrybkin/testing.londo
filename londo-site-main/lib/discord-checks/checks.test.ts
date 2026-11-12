@@ -4,7 +4,7 @@ import {randomBytes} from "node:crypto";
 import {seal,unseal} from "./crypto";
 import {matchGuilds,publicApplyUrl,validateWatchlist} from "./policy";
 import {readGuilds,tokenRequest} from "./discord-api";
-const gid="1545123264605585438";
+const gid=process.env.DISCORD_GUILD_ID!;
 test("encrypted credentials round trip and authenticated tamper rejection",()=>{
  const previous=process.env.DISCORD_OAUTH_ENCRYPTION_KEY;process.env.DISCORD_OAUTH_ENCRYPTION_KEY=randomBytes(32).toString("hex");
  try{const token={access_token:"test-access",refresh_token:"test-refresh"},encrypted=seal(token);assert.ok(!encrypted.includes("test-access"));assert.deepEqual(unseal(encrypted),token);const parts=encrypted.split(".");parts[2]=(parts[2][0]==="A"?"B":"A")+parts[2].slice(1);assert.throws(()=>unseal(parts.join(".")));}finally{if(previous===undefined)delete process.env.DISCORD_OAUTH_ENCRYPTION_KEY;else process.env.DISCORD_OAUTH_ENCRYPTION_KEY=previous;}

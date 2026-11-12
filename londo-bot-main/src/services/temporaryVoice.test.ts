@@ -5,9 +5,9 @@ import { loadTemporaryVoiceConfig } from "../config/discord.js";
 import { createTemporaryVoicePanel, TEMPORARY_VOICE_DELETE_DELAY_MS, TemporaryVoiceManager, temporaryVoiceOwnerId } from "./temporaryVoice.js";
 
 const TEST_CONFIG = {
-  panelChannelId: "1545123267113918573",
-  triggerChannelId: "1545123267113918574",
-  categoryId: "1545123267113918572",
+  panelChannelId: process.env.TEMPORARY_VOICE_PANEL_CHANNEL_ID!,
+  triggerChannelId: process.env.TEMPORARY_VOICE_TRIGGER_CHANNEL_ID!,
+  categoryId: process.env.TEMPORARY_VOICE_CATEGORY_ID!,
 };
 
 test("temporary voice panel exposes all room controls across valid action rows", () => {

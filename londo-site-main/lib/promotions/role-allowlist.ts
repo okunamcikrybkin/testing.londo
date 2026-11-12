@@ -1,16 +1,29 @@
-/** Existing Discord IDs. This order belongs to the promotion role picker, not roster priority. */
-const shared = {
-  baby: { roleId: "1545123264626430072", order: 2 },
-  young: { roleId: "1545123264626430073", order: 3 },
-  londo: { roleId: "1545123264643473519", order: 4 },
-  londest: { roleId: "1545123264643473520", order: 6 },
-  main: { roleId: "1545123264643473521", order: 8 },
-} as const;
+import { FAMILY_RANKS } from "../rank-appearance/catalog";
+
+const rankIds = new Map(FAMILY_RANKS.map(rank => [rank.key, rank.roleId]));
+const shared = [
+  ["BABY_LONDO", 2],
+  ["YOUNG_LONDO", 3],
+  ["LONDO", 4],
+  ["LONDEST_LONDO", 6],
+  ["MAIN", 8],
+] as const;
+
+function rankId(key: typeof shared[number][0]): string {
+  const roleId = rankIds.get(key);
+  if (!roleId) throw new Error(`Missing configured rank role: ${key}.`);
+  return roleId;
+}
 
 export function promotionRoleAllowlist(family: unknown): readonly { roleId: string; order: number }[] {
   if (family !== "MEMPHIS") return [];
-  const recruit = { roleId: "1545123264643473524", order: 5 };
-  return [shared.baby, shared.young, shared.londo, recruit, shared.londest, shared.main];
+  const recruitId = rankIds.get("MEMPHIS_RECRUIT");
+  if (!recruitId) throw new Error("Missing configured rank role: MEMPHIS_RECRUIT.");
+  return [
+    ...shared.slice(0, 3).map(([key, order]) => ({ roleId: rankId(key), order })),
+    { roleId: recruitId ?? "", order: 5 },
+    ...shared.slice(3).map(([key, order]) => ({ roleId: rankId(key), order })),
+  ];
 }
 
 export function isPromotionRoleAllowed(family: unknown, roleId: unknown): boolean {

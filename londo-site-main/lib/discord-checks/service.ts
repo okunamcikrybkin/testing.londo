@@ -6,7 +6,7 @@ import { isActiveApplicationConflict } from "@/lib/applications/intake";
 import { shopBot } from "@/lib/shop/bot";
 import { seal, unseal } from "./crypto";
 import { CheckError, tokenRequest, readGuilds, type Tokens } from "./discord-api";
-import { hasFreshRoles, visibleRoles, ROLE_CACHE_MS, ROLE_BATCH_LIMIT, LONDO_GUILD_ID, RETENTION_MS, matchGuilds, validateWatchlist, type GuildResult } from "./policy";
+import { hasFreshRoles, visibleRoles, ROLE_CACHE_MS, ROLE_BATCH_LIMIT, londoGuildId, RETENTION_MS, matchGuilds, validateWatchlist, type GuildResult } from "./policy";
 
 import {candidateRoleQueue} from "./role-queue";
 import {readMemberRoles} from "./member-roles";
@@ -113,7 +113,7 @@ export async function loadApplicationRoles(user:SessionUser,id:string,guildId:un
   const credential=await credentials(app.discordUserId);
   const queue=candidateRoleQueue(`${app.discordUserId}:${credential.consentedAt.toISOString()}`);
   let result:GuildResult;
-  if(target.id===LONDO_GUILD_ID){
+  if(target.id===londoGuildId()){
    try{result=await candidateRoleQueue(`LONDO_BOT:${credential.consentedAt.toISOString()}`).run<GuildResult>(app.discordUserId,async()=>{
     const response=await shopBot<{status:string;roles?:string[];roleNames?:Record<string,string>}>("/internal/discord/applications/member-roles",{discordId:app.discordUserId});
     const valid=response.status==="MEMBER"&&Array.isArray(response.roles)&&response.roles.every(role=>/^\d{17,20}$/.test(role));

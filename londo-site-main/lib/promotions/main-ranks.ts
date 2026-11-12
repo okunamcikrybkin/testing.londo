@@ -1,8 +1,9 @@
+import { FAMILY_RANKS } from "../rank-appearance/catalog";
 import { promotionRoleAllowlist } from "./role-allowlist";
 
 /** Newbie is removable but is deliberately absent from the promotion picker. */
 export const MAIN_RANK_ROLE_IDS = [...new Set([
-  "1545123264626430071",
+  ...FAMILY_RANKS.filter(rank => rank.key === "NEWBIE").map(rank => rank.roleId),
   ...promotionRoleAllowlist("MEMPHIS").map(r => r.roleId),
 ])];
 

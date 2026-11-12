@@ -9,38 +9,45 @@ import { resolveDiscordAccess } from "./resolver";
 import { parseAccessObservation } from "./protocol";
 const id = (key: string) => FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
 const staffMapping = [
-  ["OWNER", "1545123264668369039", "OWNER"],
-  ["MEMPHIS_LEADER", "1545453391537242232", "HIGH_STAFF"],
-  ["PHOENIX_LEADER", "1545123264655794265", "HIGH_STAFF"],
-  ["MEMPHIS_HIGH_STAFF", "1545123264643473528", "RECRUIT"],
-  ["PHOENIX_HIGH_STAFF", "1545123264643473527", "RECRUIT"],
-  ["MEMPHIS_DEP_OWNER", "1545123264655794264", "RECRUIT"],
-  ["PHOENIX_DEP_OWNER", "1545123264655794263", "RECRUIT"],
-  ["MEMPHIS_CUR_RECRUIT", "1545123264643473526", "RECRUIT"],
-  ["PHOENIX_CUR_RECRUIT", "1545123264643473525", "RECRUIT"],
-  ["MEMPHIS_RECRUIT", "1545123264643473524", "RECRUIT"],
-  ["PHOENIX_RECRUIT", "1545123264643473523", "RECRUIT"],
+  ["OWNER", "OWNER"],
+  ["MEMPHIS_LEADER", "HIGH_STAFF"],
+  ["MEMPHIS_HIGH_STAFF", "RECRUIT"],
+  ["MEMPHIS_DEP_OWNER", "RECRUIT"],
+  ["MEMPHIS_CUR_RECRUIT", "RECRUIT"],
+  ["MEMPHIS_RECRUIT", "RECRUIT"],
 ] as const;
-for (const [key, roleId, expected] of staffMapping) test(`${key} → ${expected}, exact ID and isolated scope`, () => {
-  assert.equal(id(key), roleId);
+for (const [key, expected] of staffMapping) test(`${key} → ${expected}, configured ID and isolated scope`, () => {
+  const roleId = id(key);
+  assert.match(roleId, /^\d{17,20}$/);
   const resolved = resolveDiscordAccess([roleId]);
   assert.equal(resolved.role, expected);
-  assert.deepEqual(resolved.familyAccess, key === "OWNER" ? { MEMPHIS: "OWNER", PHOENIX: "OWNER" } : key.startsWith("MEMPHIS") ? { MEMPHIS: expected, PHOENIX: "USER" } : { MEMPHIS: "USER", PHOENIX: expected });
+  assert.deepEqual(resolved.familyAccess, { MEMPHIS: expected, PHOENIX: "USER" });
 });
 for (const key of ["MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"]) test(`${key} → USER`, () => {
   assert.deepEqual(resolveDiscordAccess([id(key)]), { role: "USER", familyAccess: { MEMPHIS: "USER", PHOENIX: "USER" } });
 });
 for (const [keys, expected] of [
-  [["PHOENIX_LEADER", "PHOENIX_RECRUIT"], "HIGH_STAFF"],
   [["OWNER", "MEMPHIS_LEADER"], "OWNER"],
-  [["MEMPHIS_HIGH_STAFF", "PHOENIX_CUR_RECRUIT"], "RECRUIT"],
-  [["MEMPHIS_RECRUIT", "PHOENIX_RECRUIT"], "RECRUIT"],
+  [["MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT"], "RECRUIT"],
   [[], "USER"],
 ] as const) test(`priority ${keys.join("+") || "none"}`, () => assert.equal(resolveDiscordAccess(keys.map(id)).role, expected));
 test("unknown role ignored and both family scopes retained independently", () => {
   assert.deepEqual(resolveDiscordAccess(["999999999999999999"]), { role: "USER", familyAccess: { MEMPHIS: "USER", PHOENIX: "USER" } });
-  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_LEADER"), id("PHOENIX_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "RECRUIT" });
-  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_HIGH_STAFF"), id("PHOENIX_CUR_RECRUIT")]).familyAccess, { MEMPHIS: "RECRUIT", PHOENIX: "RECRUIT" });
+  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_LEADER"), id("MEMPHIS_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
+  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_HIGH_STAFF"), id("MEMPHIS_CUR_RECRUIT")]).familyAccess, { MEMPHIS: "RECRUIT", PHOENIX: "USER" });
+});
+test("configured recruiter role resolves to a requestable MEMPHIS scope", () => {
+  const previous = process.env.DISCORD_RECRUIT_ROLE_IDS;
+  process.env.DISCORD_RECRUIT_ROLE_IDS = process.env.MEMPHIS_RECRUIT_ROLE_ID;
+  try {
+    assert.deepEqual(resolveDiscordAccess([process.env.MEMPHIS_RECRUIT_ROLE_ID!]), {
+      role: "RECRUIT",
+      familyAccess: { MEMPHIS: "RECRUIT", PHOENIX: "USER" },
+    });
+  } finally {
+    if (previous === undefined) delete process.env.DISCORD_RECRUIT_ROLE_IDS;
+    else process.env.DISCORD_RECRUIT_ROLE_IDS = previous;
+  }
 });
 test("missing/stale/future/forged observations rejected", () => {
   const valid = { discordId: "100000000000000001", roleIds: [], observedAt: new Date().toISOString(), trigger: "ROLE_UPDATE" };
@@ -63,24 +70,24 @@ test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_
   try {
     esbuild.buildSync({stdin:{contents:`export {POST} from './app/api/internal/access-sync/route';export {state} from ${JSON.stringify(join(dir,"db.ts"))};`,resolveDir:process.cwd()},bundle:true,platform:"node",format:"cjs",outfile:join(dir,"test.cjs"),alias:{"@/lib/db/prisma":join(dir,"db.ts"),"server-only":join(dir,"empty.ts")},logLevel:"silent"});
     const {POST,state}=require(join(dir,"test.cjs")); let clock=Date.now()-10_000;
-    const observation=(keys:string[])=>({discordId:state.user.discordId,roleIds:keys.map(id),observedAt:new Date(++clock).toISOString(),trigger:"ROLE_UPDATE"});
+    const observation=(roleIds:string[])=>({discordId:state.user.discordId,roleIds,observedAt:new Date(++clock).toISOString(),trigger:"ROLE_UPDATE"});
     const post=(body:unknown,secret="test-secret")=>POST(new Request("http://localhost/api/internal/access-sync",{method:"POST",headers:{"x-londo-bot-secret":secret},body:JSON.stringify(body)}));
-    assert.equal((await post(observation(["OWNER"]),"bad")).status,401);
-    await post(observation(["PHOENIX_RECRUIT"])); assert.equal(state.user.role,"USER"); assert.equal(state.updates,0); assert.equal(state.audits.length,0);
-    await post(observation(["PHOENIX_LEADER"])); assert.equal(state.user.role,"USER","Discord addition never grants access");
+    assert.equal((await post(observation([process.env.OWNER_ROLE_ID!]),"bad")).status,401);
+    await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"USER"); assert.equal(state.updates,0); assert.equal(state.audits.length,0);
+    await post(observation([process.env.MEMPHIS_LEADER_ROLE_ID!])); assert.equal(state.user.role,"USER","Discord addition never grants access");
     // An approved grant is an independent input, not manufactured by Discord sync.
-    state.user.role="HIGH_STAFF"; state.user.staffAccessGrants=[{id:"approved",role:"HIGH_STAFF",memphisRole:"USER",phoenixRole:"HIGH_STAFF",grantedAt:new Date(),grantedByUserId:"owner",sourceRequestId:"request"}];
-    const old=observation(["PHOENIX_LEADER"]); await post(old);
-    await post(observation(["PHOENIX_RECRUIT"])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.invalidated,1);
-    await post(observation(["PHOENIX_LEADER","MEMPHIS_RECRUIT"])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.user.staffAccessGrants[0].memphisRole,"USER","new family needs approval");
+    state.user.role="HIGH_STAFF"; state.user.staffAccessGrants=[{id:"approved",role:"HIGH_STAFF",memphisRole:"HIGH_STAFF",phoenixRole:"USER",grantedAt:new Date(),grantedByUserId:"owner",sourceRequestId:"request"}];
+    const old=observation([process.env.MEMPHIS_LEADER_ROLE_ID!]); await post(old); assert.equal(state.invalidated,0);
+    await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.invalidated,1);
+    await post(observation([process.env.MEMPHIS_LEADER_ROLE_ID!,process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.user.staffAccessGrants[0].memphisRole,"RECRUIT");
     await post(observation([])); assert.equal(state.user.role,"USER"); assert.equal(state.invalidated,2);
     await post(old); assert.equal(state.user.role,"USER","stale grant does not restore access");
-    await post(observation(["PHOENIX_RECRUIT"])); assert.equal(state.user.role,"USER","role restored still needs another request");
+    await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"USER","role restored still needs another request");
     const count=state.updates,logs=state.audits.length;
-    await post({...observation(["OWNER"]),discordId:"100000000000000003"}); assert.equal(state.updates,count);
+    await post({...observation([process.env.OWNER_ROLE_ID!]),discordId:"100000000000000003"}); assert.equal(state.updates,count);
     assert.equal((await post([observation([]),{...observation([]),roleIds:undefined}])).status,400);
     state.user.discordId="100000000000000002";
-    await post(observation([])); await post(observation(["OWNER"])); assert.equal(state.updates,count); assert.equal(state.audits.length,logs);
+    await post(observation([])); await post(observation([process.env.OWNER_ROLE_ID!])); assert.equal(state.updates,count); assert.equal(state.audits.length,logs);
     assert.deepEqual(state.audits.map((a:{action:string})=>a.action),["ACCESS_DOWNGRADED_DISCORD","ACCESS_REVOKED_DISCORD_ELIGIBILITY"]);
   } finally {
     if(originalFull===undefined)delete process.env.FULL_ACCESS_DISCORD_IDS;else process.env.FULL_ACCESS_DISCORD_IDS=originalFull;

@@ -5,7 +5,7 @@ import { mainRankCleanup, MAIN_RANK_ROLE_IDS } from "./main-ranks.js";
 import { FAMILY_RANKS } from "../config/familyRanks.js";
 import { Collection, type Guild } from "discord.js";
 import type { ApplicationConfig } from "../types/family.js";
-const role=(key:string)=>FAMILY_RANKS.find(r=>r.key===key)!.roleId;
+const role=(key:string)=>key==="PHOENIX_RECRUIT"?process.env.PHOENIX_RECRUIT_ROLE_ID!:FAMILY_RANKS.find(r=>r.key===key)!.roleId;
 const steps=[["NEWBIE","BABY_LONDO"],["NEWBIE","LONDO"],["BABY_LONDO","YOUNG_LONDO"],["YOUNG_LONDO","LONDO"],["LONDO","MEMPHIS_RECRUIT"],["MEMPHIS_RECRUIT","LONDEST_LONDO"],["LONDEST_LONDO","MAIN"],["LONDO","PHOENIX_RECRUIT"]];
 function fixture(keys:string[],target:string,family:"MEMPHIS"|"PHOENIX"="MEMPHIS"){
  const held=new Set(keys),events:string[]=[];

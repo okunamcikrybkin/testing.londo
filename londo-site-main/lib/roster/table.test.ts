@@ -4,10 +4,10 @@ import { FAMILY_RANKS } from "../rank-appearance/catalog";
 import type { RosterEntry } from "./data";
 import { selectRoster, nextRosterSort, DEFAULT_SORT, compareDecimal, ROSTER_COLUMNS } from "./table";
 const row = (id: string, nickname: string, overrides: Partial<RosterEntry> = {}): RosterEntry => ({ discordUserId: id, gameNickname: nickname, discordDisplayName: nickname, username: nickname, birthday: null, profileId: id, staticId: null, rankDisplayName: null, rankPriority: null, totalVoiceSeconds: BigInt(0), balance: "0", ...overrides });
-const a = row("1545123264643479265", "Vafelion", {staticId:"288125", rankDisplayName:"Londo", rankRoleId:"1545123264643473519", balance:"2004053.7296", totalVoiceSeconds:BigInt(6720)});
-const b = row("1545123264643479266", "Other", {staticId:"566", rankDisplayName:"Londest Londo", balance:"3.7296"});
+const a = row("1", "Vafelion", {staticId:"288125", rankDisplayName:"Londo", rankRoleId:FAMILY_RANKS.find(rank=>rank.key==="LONDO")!.roleId, balance:"2004053.7296", totalVoiceSeconds:BigInt(6720)});
+const b = row("2", "Other", {staticId:"566", rankDisplayName:"Londest Londo", balance:"3.7296"});
 test("partial case-insensitive search across names, static, Discord and rank", () => {
-  for (const q of ["vaf", " VAF ", "881", "9265"]) assert.deepEqual(selectRoster([a,b],q).map(r=>r.discordUserId),[a.discordUserId]);
+  for (const q of ["vaf", " VAF ", "881", "1"]) assert.deepEqual(selectRoster([a,b],q).map(r=>r.discordUserId),[a.discordUserId]);
   assert.equal(selectRoster([a,b],"lon").length,2);
   assert.equal(selectRoster([a,b],"566")[0],b);
   assert.equal(selectRoster([a,b],"missing").length,0);

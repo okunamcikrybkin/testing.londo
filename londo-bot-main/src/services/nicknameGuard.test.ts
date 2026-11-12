@@ -6,12 +6,10 @@ import type { NicknameActor } from "./nicknameAudit.js";
 import { NicknameGuard } from "./nicknameGuard.js";
 
 const roles = { fam: "111111111111111111", memphis: "222222222222222222", phoenix: "333333333333333333" };
-const owner = "1545123264668369040";
-const leaderMem = "1545453391537242232";
-const leaderPhx = "1545123264655794265";
-const highStaffPhx = "1545123264643473527";
-const recruitMem = "1545123264643473524";
-const newbie = "1545123264626430071";
+const [owner, leaderMem, leaderPhx] = process.env.NICKNAME_GUARD_EXEMPT_ROLE_IDS!.split(",");
+const highStaffPhx = process.env.MEMPHIS_HIGH_STAFF_ROLE_ID!;
+const recruitMem = process.env.MEMPHIS_RECRUIT_ROLE_ID!;
+const newbie = process.env.NEWBIE_ROLE_ID!;
 const targetId = "926534588023590922";
 const botId = "999999999999999999";
 

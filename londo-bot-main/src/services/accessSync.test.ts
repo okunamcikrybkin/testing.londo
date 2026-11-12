@@ -39,7 +39,7 @@ test("OAuth fresh member: API failure is not empty roles; unknown member is veri
   assert.deepEqual((await readAccessMember(guild(async () => ({ id: member.discordId, roles: { cache: new Map([[recruit, {}]]) } })), member.discordId)).roleIds, [recruit]);
 });
 
-for (const key of ["OWNER", "MEMPHIS_LEADER", "PHOENIX_LEADER", "MEMPHIS_HIGH_STAFF", "PHOENIX_HIGH_STAFF", "MEMPHIS_DEP_OWNER", "PHOENIX_DEP_OWNER", "MEMPHIS_CUR_RECRUIT", "PHOENIX_CUR_RECRUIT", "MEMPHIS_RECRUIT", "PHOENIX_RECRUIT"]) {
+for (const key of ["OWNER", "MEMPHIS_LEADER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_DEP_OWNER", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT"]) {
   test(`${key}: grant/revoke triggers sync and role survives payload filtering`, () => {
     const roleId = FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
     assert.equal(accessRolesChanged([], [roleId]), true);
@@ -56,7 +56,7 @@ test("ordinary ranks trigger FAMQ sync while service roles are filtered", () => 
 });
 
 test("configured FAM and both membership roles trigger grant/revoke and survive snapshot filtering",()=>{
- const values={FAM_ROLE_ID:"1545123264626430067",MEMPHIS_ROLE_ID:"1545123264626430066",PHOENIX_ROLE_ID:"1545123264626430065"};
+ const values={FAM_ROLE_ID:process.env.FAM_ROLE_ID!,MEMPHIS_ROLE_ID:process.env.MEMPHIS_ROLE_ID!,PHOENIX_ROLE_ID:process.env.PHOENIX_ROLE_ID!};
  const previous=Object.fromEntries(Object.keys(values).map(key=>[key,process.env[key]]));
  try{Object.assign(process.env,values);
   for(const roleId of Object.values(values)){
@@ -64,4 +64,11 @@ test("configured FAM and both membership roles trigger grant/revoke and survive 
    assert.deepEqual(observeAccess({id:member.discordId,roles:{cache:new Map([[roleId,{}]])}} as unknown as GuildMember,"ROLE_UPDATE").roleIds,[roleId]);
   }
  }finally{for(const [key,value] of Object.entries(previous)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+});
+test("configured recruiter role triggers access sync and survives snapshot filtering",()=>{
+ const key="DISCORD_RECRUIT_ROLE_IDS",previous=process.env[key],roleId=process.env[key]!.split(",")[0];
+ try{process.env[key]=roleId;
+  assert.equal(accessRolesChanged([],[roleId]),true);assert.equal(accessRolesChanged([roleId],[]),true);
+  assert.deepEqual(observeAccess({id:member.discordId,roles:{cache:new Map([[roleId,{}]])}} as unknown as GuildMember,"ROLE_UPDATE").roleIds,[roleId]);
+ }finally{if(previous===undefined)delete process.env[key];else process.env[key]=previous;}
 });

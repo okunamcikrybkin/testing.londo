@@ -14,7 +14,7 @@ test("syncFamilyRoster posts a family-scoped rank snapshot", async () => {
     discordUsername: "vaflya2101",
     family: "MEMPHIS",
     gameNickname: "Vaflya",
-    rank: { key: "MEMPHIS_LEADER", label: "Leader (MEM)", priority: 11, roleId: "1545453391537242232" },
+    rank: { key: "MEMPHIS_LEADER", label: "Leader (MEM)", priority: 11, roleId: process.env.MEMPHIS_LEADER_ROLE_ID! },
     staticId: "566",
   }], { fetchImplementation: async (url, init) => {
     request = { body: init?.body as string, headers: new Headers(init?.headers), method: init?.method, url: String(url) };

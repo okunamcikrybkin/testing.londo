@@ -4,7 +4,7 @@ import {createRequire} from "node:module";
 import {mkdtempSync,writeFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {FAMILY_RANKS} from "./catalog";
+import {FAMILY_RANKS,FAMILY_RANK_ENV_NAMES} from "./catalog";
 import {canManageRankColors,defaultRankColors,validateRankColors,getRankColor,DEFAULT_RANK_COLOR} from "./rules";
 
 test("only active FULL_ACCESS can manage colors, never raw OWNER/HIGH_STAFF",()=>{
@@ -13,13 +13,13 @@ test("only active FULL_ACCESS can manage colors, never raw OWNER/HIGH_STAFF",()=
  for(const access of ["HIGH_STAFF","RECRUIT","FAMQ","USER"])assert.equal(canManageRankColors({effectiveAccess:access,status:"ACTIVE"}),false);
  assert.equal(canManageRankColors({effectiveAccess:"FULL_ACCESS",status:"BANNED"}),false);assert.equal(canManageRankColors(null),false);
 });
-test("catalog contains 17 unique canonical role IDs with isolated family roles",()=>{
- assert.equal(FAMILY_RANKS.length,17);assert.equal(new Set(FAMILY_RANKS.map(r=>r.roleId)).size,17);
- assert.equal(FAMILY_RANKS.filter(r=>r.scopes.length===2).length,7);
+test("catalog contains each configured role exactly once",()=>{
+ assert.equal(FAMILY_RANKS.length,FAMILY_RANK_ENV_NAMES.length);assert.equal(new Set(FAMILY_RANKS.map(r=>r.roleId)).size,FAMILY_RANKS.length);
+ assert.ok(FAMILY_RANKS.every(rank=>rank.scopes.includes("MEMPHIS")));
 });
-test("HEX normalization and independently configured MEM/PHX recruits",()=>{
- const colors=validateRankColors({...defaultRankColors(),"1545123264643473524":"#00c7a5","1545123264643473523":"#ff5a4f"});
- assert.equal(getRankColor("1545123264643473524",colors),"#00C7A5");assert.equal(getRankColor("1545123264643473523",colors),"#FF5A4F");
+test("HEX normalization applies to configured recruit ranks",()=>{
+ const recruit=FAMILY_RANKS.find(rank=>rank.key==="MEMPHIS_RECRUIT")!.roleId,colors=validateRankColors({...defaultRankColors(),[recruit]:"#00c7a5"});
+ assert.equal(getRankColor(recruit,colors),"#00C7A5");
 });
 test("invalid HEX and CSS injection rejected",()=>{
  for(const color of ["red","123456","#fff","#12345678","rgb(1,2,3)","url(x)","var(--x)","expression(x)","#FFFFFF;display:none",null,{}])assert.throws(()=>validateRankColors({...defaultRankColors(),[FAMILY_RANKS[0].roleId]:color}));
@@ -47,8 +47,9 @@ test("profile, public, preview and compact use mapped colors; rank privacy is pr
 
 test("roster loads rank appearance once for 50 entries, with a shared role color",()=>{
  const require=createRequire(import.meta.url),esbuild=require("esbuild"),dir=mkdtempSync(join(tmpdir(),"rank-query-"));
+ const mainRoleId=FAMILY_RANKS.find(rank=>rank.key==="MAIN")!.roleId;
  writeFileSync(join(dir,"empty.ts"),"export {};");
- writeFileSync(join(dir,"db.ts"),`export let count=0;export const prisma={rankAppearance:{findMany:async()=>{count++;return [{roleId:'1545123264643473521',color:'#F5B942'}]}},familyMembership:{findMany:async()=>Array.from({length:50},(_,i)=>({discordUserId:String(i),rankRoleId:'1545123264643473521',rankDisplayName:'Main',rankPriority:6,identity:{displayName:'Member',username:'member'}}))},afkSession:{findMany:async()=>[]},voiceProfile:{findMany:async()=>[]},user:{findMany:async()=>[]}};`);
+ writeFileSync(join(dir,"db.ts"),`export let count=0;export const prisma={rankAppearance:{findMany:async()=>{count++;return [{roleId:${JSON.stringify(mainRoleId)},color:'#F5B942'}]}},familyMembership:{findMany:async()=>Array.from({length:50},(_,i)=>({discordUserId:String(i),rankRoleId:${JSON.stringify(mainRoleId)},rankDisplayName:'Main',rankPriority:6,identity:{displayName:'Member',username:'member'}}))},afkSession:{findMany:async()=>[]},voiceProfile:{findMany:async()=>[]},profileCustomization:{findMany:async()=>[]},user:{findMany:async()=>[]}};`);
  return (async()=>{try{
  esbuild.buildSync({stdin:{contents:`export{getFamilyRoster}from'./lib/roster/data';export{count}from ${JSON.stringify(join(dir,"db.ts"))};`,resolveDir:process.cwd()},bundle:true,platform:"node",format:"cjs",outfile:join(dir,"roster.cjs"),alias:{"@/lib/db/prisma":join(dir,"db.ts"),"server-only":join(dir,"empty.ts")},logLevel:"silent"});
  const bundle=require(join(dir,"roster.cjs"));const rows=await bundle.getFamilyRoster("MEMPHIS");assert.equal(rows.length,50);assert.equal(bundle.count,1);assert.ok(rows.every((r:{rankColor:string})=>r.rankColor==="#F5B942"));

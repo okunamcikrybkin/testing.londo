@@ -14,8 +14,8 @@ test("access request channel is read only from its environment variable", () => 
   try {
     delete process.env.ACCESS_REQUEST_CHANNEL_ID;
     assert.equal(accessRequestChannelId(), null);
-    process.env.ACCESS_REQUEST_CHANNEL_ID = " 1560254805283311626 ";
-    assert.equal(accessRequestChannelId(), "1560254805283311626");
+    process.env.ACCESS_REQUEST_CHANNEL_ID = ` ${process.env.DISCORD_GUILD_ID} `;
+    assert.equal(accessRequestChannelId(), process.env.DISCORD_GUILD_ID);
     process.env.ACCESS_REQUEST_CHANNEL_ID = "not-a-channel";
     assert.equal(accessRequestChannelId(), null);
   } finally {
