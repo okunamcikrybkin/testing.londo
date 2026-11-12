@@ -469,7 +469,7 @@ export class TemporaryVoiceManager {
     const match = interaction.customId.match(/^londo:tempvoice:modal:(rename|limit):(\d+)$/);
     if (!match) throw new TemporaryVoiceError("Неизвестное действие панели.");
     const { room } = await this.getAuthorizedRoom(interaction, match[2]);
-    const value = interaction.fields.getTextInputValue(match[1]);
+    const value = interaction.fields.getTextInputValue("value");
     if (match[1] === "rename") {
       const name = roomName(value);
       if (!name) throw new TemporaryVoiceError("Название комнаты не может быть пустым.");

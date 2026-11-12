@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ChannelType, Collection, OverwriteType, PermissionFlagsBits, PermissionsBitField, type Guild, type VoiceChannel, type VoiceState } from "discord.js";
+import { ChannelType, Collection, OverwriteType, PermissionFlagsBits, PermissionsBitField, type Guild, type Interaction, type VoiceChannel, type VoiceState } from "discord.js";
 import { createTemporaryVoicePanel, TEMPORARY_VOICE_CATEGORY_ID, TEMPORARY_VOICE_DELETE_DELAY_MS, TemporaryVoiceManager, temporaryVoiceOwnerId } from "./temporaryVoice.js";
 
 test("temporary voice panel exposes all room controls across valid action rows", () => {
@@ -67,7 +67,7 @@ test("empty managed rooms are rechecked and deleted after the one-minute grace p
   const timers: Array<{ callback: () => void; delay: number }> = [];
   let deleted = 0;
   const room = {
-    id: "room",
+    id: "123456789012345678",
     type: ChannelType.GuildVoice,
     parentId: TEMPORARY_VOICE_CATEGORY_ID,
     members: new Collection(),
@@ -117,5 +117,66 @@ test("empty managed rooms are rechecked and deleted after the one-minute grace p
     globalThis.setTimeout = originalSetTimeout;
     globalThis.clearTimeout = originalClearTimeout;
     manager.stop();
+  }
+});
+
+test("room name and participant limit forms read their configured input and apply changes", async () => {
+  for (const [action, input, expected] of [
+    ["rename", "Quiet-Room", "Quiet-Room"],
+    ["limit", "7", 7],
+  ] as const) {
+    let updatedName = "";
+    let updatedLimit = -1;
+    const room = {
+      id: "123456789012345678",
+      type: ChannelType.GuildVoice,
+      parentId: TEMPORARY_VOICE_CATEGORY_ID,
+      permissionOverwrites: {
+        cache: new Collection([
+          ["owner", {
+            id: "owner",
+            type: OverwriteType.Member,
+            allow: new PermissionsBitField(PermissionFlagsBits.ManageChannels),
+            deny: new PermissionsBitField(),
+          }],
+        ]),
+      },
+      setName: async (name: string) => { updatedName = name; },
+      setUserLimit: async (limit: number) => { updatedLimit = limit; },
+    } as unknown as VoiceChannel;
+    const member = { id: "owner", permissions: { has: () => false } };
+    const guild = {
+      id: "guild",
+      members: { fetch: async () => member },
+      channels: { fetch: async () => room },
+    } as unknown as Guild;
+    const manager = new TemporaryVoiceManager(guild);
+    const replies: unknown[] = [];
+    const interaction = {
+      customId: `londo:tempvoice:modal:${action}:123456789012345678`,
+      guild,
+      user: { id: "owner" },
+      fields: {
+        getTextInputValue: (customId: string) => {
+          assert.equal(customId, "value");
+          return input;
+        },
+      },
+      isButton: () => false,
+      isUserSelectMenu: () => false,
+      isStringSelectMenu: () => false,
+      isModalSubmit: () => true,
+      isRepliable: () => true,
+      deferred: false,
+      replied: false,
+      deferReply: async () => undefined,
+      editReply: async (reply: unknown) => { replies.push(reply); },
+      reply: async (reply: unknown) => { replies.push(reply); },
+      followUp: async (reply: unknown) => { replies.push(reply); },
+    } as unknown as Interaction;
+
+    assert.equal(await manager.handleInteraction(interaction), true);
+    assert.equal(action === "rename" ? updatedName : updatedLimit, expected);
+    assert.equal(replies.length, 1);
   }
 });
