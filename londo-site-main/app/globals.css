@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050505;
+  --background: #141415;
   --foreground: #f4f1eb;
-  --muted: #9b9892;
+  --muted: #a1a1a6;
   --accent: #e6b77a;
   --accent-soft: #f0cb96;
   --family-memphis: #2dd4bf;
   --family-memphis-soft: #5eead4;
   --family-phoenix: #f97316;
   --family-phoenix-soft: #ff8a1f;
-  --londo-button-primary: linear-gradient(135deg, #f0cb96, #b77b3c);
-  --londo-button-primary-hover: linear-gradient(135deg, #f5d8ac, #c88c50);
-  --londo-button-primary-active: linear-gradient(135deg, #d9ad72, #a96c32);
+  --londo-button-primary: #e6b77a;
+  --londo-button-primary-hover: #f0cb96;
+  --londo-button-primary-active: #d9ad72;
   --londo-button-primary-text: #110b06;
-  --londo-button-primary-shadow: 0 5px 22px rgba(230, 183, 122, .16);
-  --londo-button-radius: 999px;
+  --londo-button-primary-shadow: none;
+  --londo-button-radius: 10px;
   --londo-button-height: 44px;
   --londo-button-ease: cubic-bezier(.22, 1, .36, 1);
 }
@@ -36,7 +36,7 @@ html {
 
 body {
   min-width: 320px;
-  background: radial-gradient(circle at 12% 8%, rgba(255, 45, 45, 0.045), transparent 26rem), radial-gradient(circle at 88% 18%, rgba(56, 104, 255, 0.055), transparent 29rem), var(--background);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
 }
@@ -763,4 +763,160 @@ body {
   .londo-roster-mobile-facts { gap:5px; }
   .londo-roster-mobile-facts dt { font-size:9px; }
   .londo-roster-mobile-facts dd { font-size:11px; }
+}
+
+/* LONDO uses quiet graphite surfaces and reserves color for product content. */
+:root {
+  --background: #141415;
+  --foreground: #ededed;
+  --muted: #a1a1a6;
+  --londo-button-primary: #e6b77a;
+  --londo-button-primary-hover: #f0cb96;
+  --londo-button-primary-active: #d9ad72;
+  --londo-button-primary-text: #17120b;
+  --londo-button-primary-shadow: none;
+  --londo-button-radius: 10px;
+}
+
+body { background: var(--background); }
+.londo-page::before { display: none; }
+
+.londo-site-theme {
+  --foreground: #ededed;
+  --muted: #a1a1a6;
+  --londo-surface: #19191b;
+  --londo-surface-raised: #232325;
+  --londo-border: rgba(255,255,255,.1);
+  --londo-glass: #19191b;
+  --londo-glass-raised: #232325;
+  --londo-glass-border: rgba(255,255,255,.1);
+  --ui-bg: #141415;
+  --ui-surface: #19191b;
+  --ui-surface-raised: #232325;
+  --ui-border: rgba(255,255,255,.1);
+  --ui-text: #ededed;
+  --ui-text-muted: #a1a1a6;
+  --ui-radius: 14px;
+  --ui-glass: #19191b;
+  --ui-glass-raised: #232325;
+  --ui-glass-border: rgba(255,255,255,.1);
+  --ui-glass-highlight: transparent;
+  --ui-input-bg: #101011;
+  background: #141415;
+  color: #ededed;
+}
+
+.londo-site-theme .londo-site-header {
+  border-color: rgba(255,255,255,.1);
+  background: #141415;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.londo-site-theme .londo-site-header nav a {
+  border-radius: 8px;
+  color: #a1a1a6;
+  transition: color 160ms ease,background-color 160ms ease;
+}
+.londo-site-theme .londo-site-header nav a:hover,
+.londo-site-theme .londo-site-header nav a[aria-current="page"] {
+  background: #232325;
+  color: #ededed;
+}
+.londo-site-theme .londo-site-header nav a[aria-current="page"] { color: var(--accent-soft); }
+.londo-site-theme .londo-site-header :is(button,a)[class*="rounded-full"] {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.londo-site-theme main :is(.londo-card,.londo-ui-surface,.londo-ui-section,[class*="panel"],[class*="Panel"],[class*="card"],[class*="Card"],article):not(.roulette-arena):not(.roulette-result):not(.roulette-history):not(.roulette-history-row):not(.roulette-wheel-shell):not(.profile):not(.banner) {
+  border-color: var(--londo-border);
+  border-radius: 14px;
+  background: var(--londo-surface);
+  background-image: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.londo-site-theme main :is(section,div,a)[class*="rounded-"][class*="border"]:not([class*="rounded-full"]):not([class*="button"]) {
+  border-color: var(--londo-border);
+  border-radius: 14px;
+  background: var(--londo-surface);
+  background-image: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.londo-site-theme .londo-card-lift { transition: border-color 160ms ease,background-color 160ms ease; }
+.londo-site-theme .londo-card-lift:hover {
+  transform: none;
+  border-color: rgba(255,255,255,.2);
+  background: var(--londo-surface-raised);
+  box-shadow: none;
+}
+.londo-site-theme .londo-ui-surface,.londo-site-theme .londo-ui-section { background: var(--londo-surface); }
+.londo-site-theme .londo-ui-button,.londo-site-theme .londo-ui-icon-button { border-radius: 9px; box-shadow: none; }
+.londo-site-theme .londo-ui-button-primary { border-color: transparent; background: var(--londo-button-primary); color: var(--londo-button-primary-text); }
+.londo-site-theme .londo-ui-button-primary:hover:not(:disabled) { background: var(--londo-button-primary-hover); box-shadow: none; }
+.londo-site-theme .londo-ui-search,.londo-site-theme main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea) {
+  border-radius: 9px;
+  background: var(--ui-input-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.londo-site-theme .londo-ui-search:focus-within { background: var(--ui-input-bg); }
+.londo-site-theme .londo-ui-table-wrap { border-radius: 12px; background: var(--londo-surface); }
+.londo-site-theme .londo-ui-empty { border-radius: 12px; background: var(--londo-surface); }
+.londo-site-theme .londo-ui-progress > span { background: var(--accent); }
+.londo-site-theme .family-choice-logo::before { display: none; }
+.londo-site-theme .family-choice-logo-memphis,
+.londo-site-theme .family-choice-logo-phoenix,
+.londo-site-theme .family-choice:hover .family-choice-logo-memphis,
+.londo-site-theme .family-choice:hover .family-choice-logo-phoenix { filter: none; }
+.londo-site-theme .family-server-icon { box-shadow: none; }
+.londo-site-theme .londo-header-balance svg { filter: none; }
+.londo-site-theme .londo-skip-link { border-radius: 8px; }
+.londo-site-theme .londo-button,
+.londo-site-theme .londo-button-primary,
+.londo-site-theme main :is(button,a)[class*="primary"],
+.londo-site-theme main :is(button,a)[class*="signInButton"],
+.londo-site-theme main :is(button,a)[class*="family-memphis-button"],
+.londo-site-theme main :is(button,a)[class*="family-phoenix-button"] {
+  border-radius: var(--londo-button-radius);
+  background: var(--londo-button-primary);
+  box-shadow: none;
+}
+.londo-site-theme .londo-button:hover,
+.londo-site-theme .londo-button-primary:hover,
+.londo-site-theme main :is(button,a)[class*="primary"]:hover:not(:disabled),
+.londo-site-theme main :is(button,a)[class*="signInButton"]:hover:not(:disabled) {
+  background: var(--londo-button-primary-hover);
+  box-shadow: none;
+  transform: none;
+}
+.londo-site-theme .londo-button-ghost { border-radius: 9px; box-shadow: none; }
+.londo-site-theme :is(.londo-eyebrow,.londo-admin-eyebrow,.londo-ui-eyebrow,.londo-form-progress-copy span) {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.londo-site-theme .londo-ui-table th,
+.londo-site-theme .londo-ui-table th button { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.londo-site-theme main :is(h1,h2,h3,h4) { font-weight: 500; }
+.londo-site-theme .londo-hero-visual { animation: none; }
+.londo-site-theme .londo-ui-button:hover:not(:disabled),
+.londo-site-theme .londo-ui-icon-button:hover { transform: none; box-shadow: none; }
+.londo-site-theme .londo-card-lift,
+.londo-site-theme .londo-ui-button,
+.londo-site-theme .londo-ui-icon-button,
+.londo-site-theme :is(a,button,[role="button"],summary) {
+  transition: color 160ms ease,background-color 160ms ease,border-color 160ms ease,transform 160ms var(--londo-motion-ease);
+}
+.londo-site-theme main :is(button,a[role="button"],input[type="submit"]):hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .londo-site-theme .londo-card-lift:hover { transform: none; }
 }

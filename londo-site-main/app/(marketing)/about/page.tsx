@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { FamilyServerIcon } from "@/components/family-server-icon";
@@ -26,25 +27,30 @@ export default async function AboutPage() {
 
   return (
     <main className={`londo-page ${s.page}`}>
-        <section className={s.intro}>
-          <p className={s.eyebrow}>Знакомство с семьей LONDO</p>
-          <h1>Большая семья.<br /><span>Общее дело.</span></h1>
-          <p className={s.lead}>LONDO — государственная семья с большим составом, опытом лидерских сроков, медиа-партнерами и адекватными людьми.</p>
+      <section className={s.intro}>
+        <div className={s.introCopy}>
+          <p className={s.eyebrow}>Знакомство с семьёй LONDO</p>
+          <h1>Семья LONDO<br /><span>на MEMPHIS</span></h1>
+          <p className={s.lead}>Государственная семья на Majestic RP. Помогаем освоиться, знакомимся и играем одной командой.</p>
           <div className={s.introActions}>
             <Link href={user ? "/apply" : "/api/auth/discord?next=/apply"} className={s.primaryLink}>Подать заявку <span aria-hidden="true">→</span></Link>
             {user ? <Link href="/dashboard" className={s.secondaryLink}>Перейти в личный кабинет</Link> : <Link href="/api/auth/discord?next=/about" className={s.secondaryLink}>Войти через Discord</Link>}
           </div>
-          <div className={s.facts} aria-label="LONDO в двух словах">
-            <div><span>Формат</span><strong>Государственная семья</strong></div>
-            <div><span>Сервер</span><strong className={s.familyNames}><span><FamilyServerIcon family="MEMPHIS" size="inline" /> MEMPHIS</span><i></i></strong></div>
-            <div><span>Заявки</span><strong>Открыты для новых людей</strong></div>
-          </div>
-        </section>
+        </div>
+        <div className={s.introVisual}>
+          <Image src="/branding/londo-logo.png" alt="Эмблема семьи LONDO" width={520} height={520} priority sizes="(max-width: 640px) 70vw, 360px" />
+        </div>
+        <div className={s.facts} aria-label="LONDO в двух словах">
+          <div><span>Формат</span><strong>Государственная семья</strong></div>
+          <div><span>Сервер</span><strong className={s.familyNames}><span><FamilyServerIcon family="MEMPHIS" size="inline" /> MEMPHIS</span><i></i></strong></div>
+          <div><span>Заявки</span><strong>Открыты для новых людей</strong></div>
+        </div>
+      </section>
 
         <section className={s.owners} aria-labelledby="owners-title">
           <div className={s.sectionHeading}>
             <p className={s.eyebrow}>Команда LONDO</p>
-            <h2 id="owners-title">Люди, которые ведут семью.</h2>
+            <h2 id="owners-title">Люди, которые ведут семью</h2>
           </div>
           <div className={s.ownerGrid}>
             {owners.map((owner, index) => (
@@ -68,7 +74,7 @@ export default async function AboutPage() {
         <section className={s.joining} aria-labelledby="joining-title">
           <div className={s.sectionHeading}>
             <p className={s.eyebrow}>Как присоединиться</p>
-            <h2 id="joining-title">Три шага до знакомства.</h2>
+            <h2 id="joining-title">Три шага, чтобы вступить</h2>
           </div>
           <div className={s.joinSteps}>
             <article><span>01</span><h3>Выбери сервер</h3><p>Присоединяйся к семье MEMPHIS и играй вместе со своей командой.</p></article>
@@ -80,7 +86,7 @@ export default async function AboutPage() {
         <section className={s.families} id="families" aria-labelledby="families-title">
           <div className={s.sectionHeading}>
             <p className={s.eyebrow}>Наш сервер</p>
-            <h2 id="families-title">Сервер, на котором мы есть.</h2>
+            <h2 id="families-title">Где играет семья</h2>
           </div>
           <div className={s.familyRow}>
             <span className={s.familyNumber}>01</span>
@@ -92,14 +98,14 @@ export default async function AboutPage() {
 
         <section className={s.telegram} aria-labelledby="telegram-title">
           <div className={s.telegramMark} aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 4.4 18.5 20c-.2 1.1-.8 1.4-1.7.9l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.7-7.9c.4-.4-.1-.6-.6-.2L6.5 14.1l-4.6-1.4c-1-.3-1-1 .2-1.5L20 4.1c.8-.3 1.6.2 1.8.3Z" /></svg></div>
-          <div><p className={s.eyebrow}>Будь в курсе</p><h2 id="telegram-title">Новости LONDO — в Telegram.</h2><p>Анонсы, новости и важные события семьи в одном канале. Подписывайся, чтобы ничего не пропустить.</p></div>
+          <div><p className={s.eyebrow}>Будь в курсе</p><h2 id="telegram-title">Новости LONDO в Telegram</h2><p>Анонсы, новости и важные события семьи в одном канале. Подписывайся, чтобы ничего не пропустить.</p></div>
           <a className={s.telegramLink} href="https://t.me/londofam" target="_blank" rel="noreferrer">Перейти в канал <span aria-hidden="true">↗</span></a>
         </section>
 
         <section className={s.values} aria-labelledby="values-title">
           <div className={s.sectionHeading}>
             <p className={s.eyebrow}>Что нас объединяет</p>
-            <h2 id="values-title">Путь, который мы строим вместе.</h2>
+            <h2 id="values-title">Наши общие принципы</h2>
           </div>
           <div className={s.pillars}>
             {pillars.map((pillar, index) => (

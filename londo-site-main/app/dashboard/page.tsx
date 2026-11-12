@@ -21,8 +21,8 @@ export default async function DashboardPage() {
     <main className={s.main}>
       <section className={s.welcome}>
         <div>
-          <p className={s.eyebrow}>Панель рекрута LONDO</p>
-          <h1>Рады видеть,<br /><span>{user.displayName || user.username}.</span></h1>
+          <p className={s.eyebrow}>LONDO · участник</p>
+          <h1>Личный кабинет</h1>
           <p className={s.welcomeText}>{canChooseFamilies ? "Выбери сервер, чтобы продолжить." : "Твои права доступа пока настраиваются. Проверь статус — там будет следующий шаг."}</p>
         </div>
         <Image src="/branding/londo-logo.png" alt="" aria-hidden="true" width={280} height={280} priority sizes="(max-width: 767px) 155px, 250px" className={s.welcomeLogo} />

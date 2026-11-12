@@ -4,8 +4,8 @@ The shared UI kit lives in `app/globals.css`. Use these classes for new pages an
 
 ## Surfaces and hierarchy
 
-- `londo-ui-surface` — the standard frosted glass panel/card; use it for one primary surface, not every nested wrapper.
-- `londo-ui-surface londo-ui-surface-raised` — a slightly brighter interactive surface.
+- `londo-ui-surface` — the standard neutral panel/card with a quiet border.
+- `londo-ui-surface londo-ui-surface-raised` — a slightly brighter solid surface for interactive content.
 - `londo-ui-section` — quiet inset group inside a glass panel.
 - `londo-ui-eyebrow`, `londo-ui-title`, `londo-ui-description` — shared page and section heading scale.
 - `londo-ui-empty` — empty and no-results state; place a `<strong>` title first.
@@ -29,7 +29,7 @@ The shared UI kit lives in `app/globals.css`. Use these classes for new pages an
 
 ## Composition rules
 
-1. Use one glass layer per visual group. Keep nested toolbars, card headers, and table rows transparent.
+1. Keep surfaces flat and nested toolbars, card headers, and table rows transparent.
 2. Use the warm LONDO accent for focus, primary actions, and active navigation. Reserve green, amber, and red for semantic status.
 3. Keep touch targets at least 42–46px high, preserve visible keyboard focus, and use a compact-card/table alternative for narrow screens.
 4. Page-specific CSS should handle layout only. Reuse the shared surface, controls, buttons, badges, tabs, and table classes for appearance.
