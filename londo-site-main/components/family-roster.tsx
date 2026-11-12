@@ -7,6 +7,7 @@ import { Header } from "@/components/header";
 import type { SessionUser } from "@/lib/auth/session";
 import type { RosterEntry } from "@/lib/roster/data";
 import { DEFAULT_SORT, ROSTER_COLUMNS, nextRosterSort, selectRoster, type RosterSort } from "@/lib/roster/table";
+import { formatCoins } from "@/lib/economy/format";
 
 type FamilyRosterProps = { family: "MEMPHIS"; user: SessionUser; roster: RosterEntry[] };
 const voiceLabel = (seconds: bigint) => {
@@ -92,7 +93,7 @@ export function FamilyRoster({ family, user, roster }: FamilyRosterProps) {
                       <td><span className="londo-roster-discord">{member.discordUserId}</span></td>
                       <td><span className="londo-roster-rank"><RankLabel roleId={member.rankRoleId} colors={member.rankRoleId && member.rankColor ? { [member.rankRoleId]: member.rankColor } : undefined}>{member.rankDisplayName ?? "Без ранга"}</RankLabel></span></td>
                       <td>{voiceLabel(member.totalVoiceSeconds)}</td>
-                      <td>{member.balance}</td>
+                      <td>{formatCoins(member.balance)}</td>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -104,7 +105,7 @@ export function FamilyRoster({ family, user, roster }: FamilyRosterProps) {
                     <span className="londo-roster-rank"><RankLabel roleId={member.rankRoleId} colors={member.rankRoleId && member.rankColor ? { [member.rankRoleId]: member.rankColor } : undefined}>{member.rankDisplayName ?? "Без ранга"}</RankLabel></span>
                   </div>
                   {member.afkUntil && <span className="londo-ui-badge mt-3" data-tone="warning" title={`Отпуск до ${dateLabel(member.afkUntil)}`}>В отпуске до {dateLabel(member.afkUntil)}</span>}
-                  <dl className="londo-roster-mobile-facts"><div><dt>Статик</dt><dd>{member.staticId ?? "—"}</dd></div><div><dt>Голос</dt><dd>{voiceLabel(member.totalVoiceSeconds)}</dd></div><div><dt>Баланс</dt><dd>{member.balance}</dd></div></dl>
+                  <dl className="londo-roster-mobile-facts"><div><dt>Статик</dt><dd>{member.staticId ?? "—"}</dd></div><div><dt>Голос</dt><dd>{voiceLabel(member.totalVoiceSeconds)}</dd></div><div><dt>Баланс</dt><dd>{formatCoins(member.balance)}</dd></div></dl>
                 </article>
               ))}</div>
             </>

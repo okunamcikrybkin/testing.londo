@@ -9,6 +9,7 @@ import Link from "next/link";
 import { DiscordLoginButton } from "@/components/discord-login-button";
 import { Logo } from "@/components/logo";
 import { DISCORD_SIGN_OUT_PATH } from "@/lib/auth/paths";
+import { formatCoins } from "@/lib/economy/format";
 import type { SessionUser } from "@/lib/auth/session";
 
 type NavItem = { href: string; label: string };
@@ -16,12 +17,6 @@ type HeaderProps = { user?: SessionUser | null };
 
 function navigationFor(user: SessionUser | null): NavItem[] {
  return user ? navigationForAccess(user.effectiveAccess) : [{href:"/about",label:"О LONDO"}];
-}
-
-function formatBalance(value: string) {
-  const [integer, fraction] = value.split(".");
-  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return fraction ? `${grouped},${fraction}` : grouped;
 }
 
 function CoinBalance() {
@@ -55,7 +50,8 @@ function CoinBalance() {
     };
   }, []);
 
-  const label = failed ? "Баланс монет не загрузился" : balance === null ? "Загрузка баланса монет" : `Баланс: ${balance} монет`;
+  const formattedBalance = balance === null ? null : formatCoins(balance);
+  const label = failed ? "Баланс монет не загрузился" : formattedBalance === null ? "Загрузка баланса монет" : `Баланс: ${formattedBalance} монет`;
   return <span className="londo-header-balance" role="status" aria-live="polite" aria-label={label} title={label}>
     <svg viewBox="0 0 28 28" aria-hidden="true">
       <ellipse cx="14" cy="20" rx="9" ry="4.5" fill="#9d622d" />
@@ -63,7 +59,7 @@ function CoinBalance() {
       <ellipse cx="14" cy="16" rx="9" ry="4.5" fill="#f1bc59" stroke="#ffe09a" strokeWidth="1" />
       <circle cx="14" cy="16" r="3" fill="none" stroke="#bd792d" strokeWidth="1" />
     </svg>
-    <span>{failed ? "—" : balance === null ? "…" : formatBalance(balance)}</span>
+    <span>{failed ? "—" : formattedBalance === null ? "…" : formattedBalance}</span>
     <span className="sr-only">монет</span>
   </span>;
 }
