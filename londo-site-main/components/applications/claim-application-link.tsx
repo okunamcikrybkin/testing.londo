@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export function ClaimApplicationLink({ id, family, href, completed, claimed, owned }: { id: string; family: "memphis" | "phoenix"; href: string; completed: boolean; claimed: boolean; owned: boolean }) {
+export function ClaimApplicationLink({ id, family, href, completed, claimed, claimedByName, owned }: { id: string; family: "memphis" | "phoenix"; href: string; completed: boolean; claimed: boolean; claimedByName: string | null; owned: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +26,7 @@ export function ClaimApplicationLink({ id, family, href, completed, claimed, own
   }
 
   if (completed || owned) return <Link href={href} className="londo-ui-button londo-ui-button-primary shrink-0">Открыть заявку</Link>;
-  if (claimed) return <span className="londo-ui-badge" data-tone="warning">Заявка уже закреплена</span>;
+  if (claimed) return <div className="flex flex-col items-start gap-2 sm:items-end"><span className="londo-ui-badge" data-tone="warning">Заявка уже закреплена</span><span className="text-sm text-muted">{claimedByName ? `Рассматривает: ${claimedByName}` : "Рекрут рассматривает заявку"}</span></div>;
 
   return <>
     <button type="button" className="londo-ui-button londo-ui-button-primary shrink-0" onClick={() => setOpen(true)}>Открыть заявку</button>

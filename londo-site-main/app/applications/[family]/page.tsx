@@ -71,7 +71,7 @@ export default async function FamilyApplicationsPage({
                   {application.discordAvatar ? <Image src={application.discordAvatar} alt="" width={48} height={48} className="h-12 w-12 rounded-2xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-lg font-semibold">{application.discordDisplayName.slice(0, 1).toUpperCase()}</div>}
                   <div className="min-w-0"><h2 className="truncate font-semibold text-white">{application.discordDisplayName}</h2><p className="truncate text-sm text-muted">@{application.discordUsername} · {formatApplicationDate(application.createdAt)}</p><div className="mt-2"><StatusBadge status={application.status} /></div></div>
                 </div>
-                <ClaimApplicationLink id={application.id} family={slug} href={`/applications/${slug}/${application.id}`} completed={application.status === "ACCEPTED" || application.status === "REJECTED"} claimed={Boolean(application.claimedByUserId && application.claimedByUserId !== user.id)} owned={application.claimedByUserId === user.id} />
+                <ClaimApplicationLink id={application.id} family={slug} href={`/applications/${slug}/${application.id}`} completed={application.status === "ACCEPTED" || application.status === "REJECTED"} claimed={Boolean(application.claimedByUserId && application.claimedByUserId !== user.id)} claimedByName={application.claimedByName} owned={application.claimedByUserId === user.id} />
               </article>
             ))}
           </div>

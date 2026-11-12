@@ -25,7 +25,7 @@ export async function getFamilyApplicationCounts(family: Family) {
 }
 
 export async function listFamilyApplications(family: Family, tab: ApplicationTab) {
-  return prisma.familyApplication.findMany({
+  const applications = await prisma.familyApplication.findMany({
     where: {
       family,
       status: { in: statusesForTab(tab) },
@@ -37,6 +37,20 @@ export async function listFamilyApplications(family: Family, tab: ApplicationTab
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const claimantIds = [...new Set(applications.flatMap((application) => application.claimedByUserId ? [application.claimedByUserId] : []))];
+  if (!claimantIds.length) return applications.map((application) => ({ ...application, claimedByName: null }));
+
+  const claimants = await prisma.user.findMany({
+    where: { id: { in: claimantIds } },
+    select: { id: true, displayName: true, username: true },
+  });
+  const namesById = new Map(claimants.map((claimant) => [claimant.id, claimant.displayName || claimant.username]));
+
+  return applications.map((application) => ({
+    ...application,
+    claimedByName: application.claimedByUserId ? namesById.get(application.claimedByUserId) ?? null : null,
+  }));
 }
 
 export async function getFamilyApplication(id: string, family: Family) {
