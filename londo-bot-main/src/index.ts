@@ -436,6 +436,6 @@ void start().catch((error) => {
     return;
   }
 
-  logError("Bot startup failed. Check local configuration.");
+  logStartupError(error);
   process.exitCode = 1;
 });

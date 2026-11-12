@@ -12,6 +12,11 @@ const rank = (key: string) => {
   return result.roleId;
 };
 
+test("removed Memphis Leader role is not required or resolved", () => {
+  assert.equal(process.env.MEMPHIS_LEADER_ROLE_ID, undefined);
+  assert.equal(FAMILY_RANKS.some((item) => item.key === "MEMPHIS_LEADER"), false);
+});
+
 function member(roleIds: string[], id = "926534588023590922", roleNames: Record<string, string> = {}): GuildMember {
   return {
     id,
@@ -23,15 +28,15 @@ function member(roleIds: string[], id = "926534588023590922", roleNames: Record<
 }
 
 test("rank resolver honors the full configured hierarchy chain for both families", () => {
-  const memphis = ["OWNER", "MEMPHIS_LEADER", "MEMPHIS_DEP_OWNER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT", "MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"];
+  const memphis = ["OWNER", "MEMPHIS_DEP_OWNER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT", "MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"];
   const phoenix = ["OWNER", "PHOENIX_LEADER", "PHOENIX_DEP_OWNER", "PHOENIX_HIGH_STAFF", "PHOENIX_CUR_RECRUIT", "PHOENIX_RECRUIT", "MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO", "NEWBIE"];
   for (const [index, key] of memphis.entries()) assert.equal(resolveFamilyRank(member(memphis.slice(index).map(rank)), "MEMPHIS")?.key, key);
   for (const [index, key] of phoenix.entries()) assert.equal(resolveFamilyRank(member(phoenix.slice(index).map(rank)), "PHOENIX")?.key, key);
 });
 
 test("family scoped ranks stay isolated while common ranks work for both", () => {
-  const dual = member([familyRoles.fam, familyRoles.memphis, familyRoles.phoenix, rank("MEMPHIS_LEADER"), rank("PHOENIX_RECRUIT")]);
-  assert.equal(resolveFamilyRank(dual, "MEMPHIS")?.key, "MEMPHIS_LEADER");
+  const dual = member([familyRoles.fam, familyRoles.memphis, familyRoles.phoenix, rank("MEMPHIS_HIGH_STAFF"), rank("PHOENIX_RECRUIT")]);
+  assert.equal(resolveFamilyRank(dual, "MEMPHIS")?.key, "MEMPHIS_HIGH_STAFF");
   assert.equal(resolveFamilyRank(dual, "PHOENIX")?.key, "PHOENIX_RECRUIT");
   assert.equal(resolveFamilyRank(member([rank("LONDO")]), "MEMPHIS")?.key, "LONDO");
   assert.equal(resolveFamilyRank(member([rank("LONDO")]), "PHOENIX")?.key, "LONDO");

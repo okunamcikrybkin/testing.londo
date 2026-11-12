@@ -8,9 +8,12 @@ import { FAMILY_RANKS } from "../rank-appearance/catalog";
 import { resolveDiscordAccess } from "./resolver";
 import { parseAccessObservation } from "./protocol";
 const id = (key: string) => FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
+test("removed Memphis Leader role is not part of the site rank catalog", () => {
+  assert.equal(process.env.MEMPHIS_LEADER_ROLE_ID, undefined);
+  assert.equal(FAMILY_RANKS.some(rank => rank.key === "MEMPHIS_LEADER"), false);
+});
 const staffMapping = [
   ["OWNER", "OWNER"],
-  ["MEMPHIS_LEADER", "HIGH_STAFF"],
   ["MEMPHIS_HIGH_STAFF", "RECRUIT"],
   ["MEMPHIS_DEP_OWNER", "RECRUIT"],
   ["MEMPHIS_CUR_RECRUIT", "RECRUIT"],
@@ -27,13 +30,13 @@ for (const key of ["MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO"
   assert.deepEqual(resolveDiscordAccess([id(key)]), { role: "USER", familyAccess: { MEMPHIS: "USER", PHOENIX: "USER" } });
 });
 for (const [keys, expected] of [
-  [["OWNER", "MEMPHIS_LEADER"], "OWNER"],
+  [["OWNER"], "OWNER"],
   [["MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT"], "RECRUIT"],
   [[], "USER"],
 ] as const) test(`priority ${keys.join("+") || "none"}`, () => assert.equal(resolveDiscordAccess(keys.map(id)).role, expected));
 test("unknown role ignored and both family scopes retained independently", () => {
   assert.deepEqual(resolveDiscordAccess(["999999999999999999"]), { role: "USER", familyAccess: { MEMPHIS: "USER", PHOENIX: "USER" } });
-  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_LEADER"), id("MEMPHIS_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
+  assert.deepEqual(resolveDiscordAccess([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!, id("MEMPHIS_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
   assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_HIGH_STAFF"), id("MEMPHIS_CUR_RECRUIT")]).familyAccess, { MEMPHIS: "RECRUIT", PHOENIX: "USER" });
 });
 test("configured recruiter role resolves to a requestable MEMPHIS scope", () => {
@@ -74,12 +77,12 @@ test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_
     const post=(body:unknown,secret="test-secret")=>POST(new Request("http://localhost/api/internal/access-sync",{method:"POST",headers:{"x-londo-bot-secret":secret},body:JSON.stringify(body)}));
     assert.equal((await post(observation([process.env.OWNER_ROLE_ID!]),"bad")).status,401);
     await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"USER"); assert.equal(state.updates,0); assert.equal(state.audits.length,0);
-    await post(observation([process.env.MEMPHIS_LEADER_ROLE_ID!])); assert.equal(state.user.role,"USER","Discord addition never grants access");
+    await post(observation([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!])); assert.equal(state.user.role,"USER","Discord addition never grants access");
     // An approved grant is an independent input, not manufactured by Discord sync.
     state.user.role="HIGH_STAFF"; state.user.staffAccessGrants=[{id:"approved",role:"HIGH_STAFF",memphisRole:"HIGH_STAFF",phoenixRole:"USER",grantedAt:new Date(),grantedByUserId:"owner",sourceRequestId:"request"}];
-    const old=observation([process.env.MEMPHIS_LEADER_ROLE_ID!]); await post(old); assert.equal(state.invalidated,0);
+    const old=observation([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!]); await post(old); assert.equal(state.invalidated,0);
     await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.invalidated,1);
-    await post(observation([process.env.MEMPHIS_LEADER_ROLE_ID!,process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.user.staffAccessGrants[0].memphisRole,"RECRUIT");
+    await post(observation([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!,process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.user.staffAccessGrants[0].memphisRole,"RECRUIT");
     await post(observation([])); assert.equal(state.user.role,"USER"); assert.equal(state.invalidated,2);
     await post(old); assert.equal(state.user.role,"USER","stale grant does not restore access");
     await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"USER","role restored still needs another request");

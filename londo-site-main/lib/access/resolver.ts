@@ -5,7 +5,6 @@ import { configuredRoleIds } from "./discord-roles";
 export type FamilyAccess = { MEMPHIS: UserRole; PHOENIX: UserRole };
 const staffKeys: Record<string, UserRole> = {
   OWNER: "OWNER",
-  MEMPHIS_LEADER: "HIGH_STAFF",
   MEMPHIS_HIGH_STAFF: "RECRUIT",
   MEMPHIS_DEP_OWNER: "RECRUIT",
   MEMPHIS_CUR_RECRUIT: "RECRUIT",

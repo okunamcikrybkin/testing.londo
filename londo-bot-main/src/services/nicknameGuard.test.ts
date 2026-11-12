@@ -6,8 +6,8 @@ import type { NicknameActor } from "./nicknameAudit.js";
 import { NicknameGuard } from "./nicknameGuard.js";
 
 const roles = { fam: "111111111111111111", memphis: "222222222222222222", phoenix: "333333333333333333" };
-const [owner, leaderMem, leaderPhx] = process.env.NICKNAME_GUARD_EXEMPT_ROLE_IDS!.split(",");
-const highStaffPhx = process.env.MEMPHIS_HIGH_STAFF_ROLE_ID!;
+const [owner, additionalExemption] = process.env.NICKNAME_GUARD_EXEMPT_ROLE_IDS!.split(",");
+const highStaffMem = process.env.MEMPHIS_HIGH_STAFF_ROLE_ID!;
 const recruitMem = process.env.MEMPHIS_RECRUIT_ROLE_ID!;
 const newbie = process.env.NEWBIE_ROLE_ID!;
 const targetId = "926534588023590922";
@@ -23,25 +23,25 @@ function guardWithLogs() {
 }
 
 test("ordinary FAM member self edits are restored", async () => {
-  for (const rank of [newbie, recruitMem, highStaffPhx]) {
+  for (const rank of [newbie, recruitMem, highStaffMem]) {
     let restoredTo: string | null | undefined; const { guard } = guardWithLogs();
     await guard.handleUpdate(member("Vafelion | 566", [roles.fam, rank]), member("TEST", [roles.fam, rank], { setNickname: async (nickname) => { restoredTo = nickname; } }), roles, actor(targetId));
     assert.equal(restoredTo, "Vafelion | 566");
   }
 });
 
-test("Owner and both Leaders may self edit their nicknames", async () => {
-  for (const exemption of [owner, leaderMem, leaderPhx]) {
+test("Owner and explicitly exempt roles may self edit their nicknames", async () => {
+  for (const exemption of [owner, additionalExemption]) {
     let calls = 0; const { guard } = guardWithLogs();
     await guard.handleUpdate(member("Old", [roles.fam, exemption]), member("New", [roles.fam, exemption], { setNickname: async () => { calls += 1; } }), roles, actor(targetId, [exemption]));
     assert.equal(calls, 0);
   }
-  assert.equal(NICKNAME_GUARD_EXEMPT_ROLE_IDS.size, 3);
+  assert.equal(NICKNAME_GUARD_EXEMPT_ROLE_IDS.size, 2);
 });
 
-test("global Owner and Leader actor edits are allowed for either family", async () => {
+test("global Owner and configured exemption actor edits are allowed for either family", async () => {
   const ordinaryTarget = member("Old", [roles.fam, roles.phoenix, newbie]);
-  for (const exemption of [owner, leaderMem, leaderPhx]) {
+  for (const exemption of [owner, additionalExemption]) {
     let calls = 0; const { guard } = guardWithLogs();
     await guard.handleUpdate(ordinaryTarget, member("New", [roles.fam, roles.phoenix, newbie], { setNickname: async () => { calls += 1; } }), roles, actor(`actor-${exemption}`, [exemption]));
     assert.equal(calls, 0);

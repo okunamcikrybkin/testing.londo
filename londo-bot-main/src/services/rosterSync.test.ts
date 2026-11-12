@@ -14,7 +14,7 @@ test("syncFamilyRoster posts a family-scoped rank snapshot", async () => {
     discordUsername: "vaflya2101",
     family: "MEMPHIS",
     gameNickname: "Vaflya",
-    rank: { key: "MEMPHIS_LEADER", label: "Leader (MEM)", priority: 11, roleId: process.env.MEMPHIS_LEADER_ROLE_ID! },
+    rank: { key: "MEMPHIS_HIGH_STAFF", label: "High Staff (MEM)", priority: 9, roleId: process.env.MEMPHIS_HIGH_STAFF_ROLE_ID! },
     staticId: "566",
   }], { fetchImplementation: async (url, init) => {
     request = { body: init?.body as string, headers: new Headers(init?.headers), method: init?.method, url: String(url) };
@@ -27,8 +27,8 @@ test("syncFamilyRoster posts a family-scoped rank snapshot", async () => {
   assert.equal(request.headers?.get("x-londo-bot-secret"), "unit-test-value");
   const body = JSON.parse(request.body ?? "{}");
   assert.equal(body.family, "MEMPHIS");
-  assert.equal(body.members[0].rankKey, "MEMPHIS_LEADER");
-  assert.equal(body.members[0].rankPriority, 11);
+  assert.equal(body.members[0].rankKey, "MEMPHIS_HIGH_STAFF");
+  assert.equal(body.members[0].rankPriority, 9);
   assert.equal(body.members[0].gameNickname, "Vaflya");
   assert.equal(body.members[0].staticId, "566");
 });

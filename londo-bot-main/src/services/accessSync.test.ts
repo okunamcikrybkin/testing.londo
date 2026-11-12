@@ -39,7 +39,7 @@ test("OAuth fresh member: API failure is not empty roles; unknown member is veri
   assert.deepEqual((await readAccessMember(guild(async () => ({ id: member.discordId, roles: { cache: new Map([[recruit, {}]]) } })), member.discordId)).roleIds, [recruit]);
 });
 
-for (const key of ["OWNER", "MEMPHIS_LEADER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_DEP_OWNER", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT"]) {
+for (const key of ["OWNER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_DEP_OWNER", "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT"]) {
   test(`${key}: grant/revoke triggers sync and role survives payload filtering`, () => {
     const roleId = FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
     assert.equal(accessRolesChanged([], [roleId]), true);

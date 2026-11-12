@@ -6,7 +6,7 @@ import { logWarning } from "../utils/logger.js";
 type Trigger = "ROLE_UPDATE" | "STARTUP_RECONCILIATION" | "PERIODIC_RECONCILIATION" | "OAUTH";
 export type AccessObservation = { discordId: string; roleIds: string[]; observedAt: string; trigger: Trigger };
 const keys = new Set([
-  "OWNER", "MEMPHIS_LEADER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_DEP_OWNER",
+  "OWNER", "MEMPHIS_HIGH_STAFF", "MEMPHIS_DEP_OWNER",
   "MEMPHIS_CUR_RECRUIT", "MEMPHIS_RECRUIT",
 ]);
 const accessRankIds = FAMILY_RANKS.filter(rank => keys.has(rank.key) || ["MAIN","LONDEST_LONDO","LONDO","YOUNG_LONDO","BABY_LONDO","NEWBIE"].includes(rank.key)).map(rank => rank.roleId);

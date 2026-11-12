@@ -12,7 +12,6 @@ export type FamilyRankDefinition = {
 const BOTH_FAMILIES = ["MEMPHIS"] as const;
 export const FAMILY_RANK_ENV_NAMES = [
   "OWNER_ROLE_ID",
-  "MEMPHIS_LEADER_ROLE_ID",
   "MEMPHIS_DEP_OWNER_ROLE_ID",
   "MEMPHIS_HIGH_STAFF_ROLE_ID",
   "MEMPHIS_CUR_RECRUIT_ROLE_ID",
@@ -37,7 +36,6 @@ function configuredRoleId(name: typeof FAMILY_RANK_ENV_NAMES[number]): string {
  */
 const ranks: readonly (Omit<FamilyRankDefinition, "roleId"> & { envName: typeof FAMILY_RANK_ENV_NAMES[number] })[] = [
   { key: "OWNER", label: "Owner", priority: 12, envName: "OWNER_ROLE_ID", scopes: BOTH_FAMILIES },
-  { key: "MEMPHIS_LEADER", label: "Leader (MEM)", priority: 11, envName: "MEMPHIS_LEADER_ROLE_ID", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_DEP_OWNER", label: "Dep. Owner (MEM)", priority: 10, envName: "MEMPHIS_DEP_OWNER_ROLE_ID", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_HIGH_STAFF", label: "High Staff (MEM)", priority: 9, envName: "MEMPHIS_HIGH_STAFF_ROLE_ID", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_CUR_RECRUIT", label: "Cur. Recruit (MEM)", priority: 8, envName: "MEMPHIS_CUR_RECRUIT_ROLE_ID", scopes: ["MEMPHIS"] },
