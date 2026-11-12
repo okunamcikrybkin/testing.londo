@@ -37,12 +37,6 @@ const env = {
 };
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const migrations = spawnSync(npm, ["run", "migrate:deploy", "--workspace=londo-site-main"], { cwd: root, env, stdio: "inherit" });
-if (migrations.status !== 0) {
-  console.error(`[londo] Database migrations failed with code ${migrations.status ?? 1}.`);
-  process.exit(migrations.status ?? 1);
-}
-
 const seed = spawnSync(npm, ["run", "db:seed"], { cwd: root, env, stdio: "inherit" });
 if (seed.status !== 0) {
   console.error(`[londo] Database initialization failed with code ${seed.status ?? 1}.`);
