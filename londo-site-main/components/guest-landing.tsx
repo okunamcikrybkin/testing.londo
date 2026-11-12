@@ -25,10 +25,10 @@ export function GuestLanding() {
 
       <main className={s.hero}>
         <div className={s.copy}>
-          <p className={s.eyebrow}>Набор на сервер MEMPHIS открыт</p>
-          <h1>Семья LONDO<br />на Majestic RP</h1>
+          <p className={s.eyebrow}>Закрытое пространство сообщества</p>
+          <h1>Добро пожаловать в LONDO</h1>
           <p className={s.description}>
-            Играем на MEMPHIS, помогаем новичкам освоиться и регулярно проводим розыгрыши денежных призов.
+            Мы — государственная семья на проекте Majestic RP. Присоединяйся к нам! Мы помогаем новичкам освоиться благодаря активному сообществу опытных игроков. А ещё регулярно проводим розыгрыши денежных призов.
           </p>
           <DiscordLoginButton className={s.mainLogin} />
           <p className={s.note}>После авторизации вам будут доступны разделы согласно вашим правам.</p>
