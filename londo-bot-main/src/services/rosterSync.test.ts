@@ -32,3 +32,21 @@ test("syncFamilyRoster posts a family-scoped rank snapshot", async () => {
   assert.equal(body.members[0].gameNickname, "Vaflya");
   assert.equal(body.members[0].staticId, "566");
 });
+
+test("syncFamilyRoster logs the response detail when the site rejects a snapshot", async () => {
+  const warnings: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  try {
+    const result = await syncFamilyRoster(config, "111111111111111111", "MEMPHIS", [], {
+      fetchImplementation: async () => new Response(JSON.stringify({ error: "Unable to persist roster snapshot.", detail: "P2021: table family_memberships does not exist." }), { status: 500 }),
+    });
+
+    assert.equal(result, false);
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.match(warnings.join(" "), /HTTP 500:.*family_memberships does not exist/);
+});

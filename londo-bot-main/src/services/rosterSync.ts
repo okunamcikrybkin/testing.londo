@@ -49,7 +49,8 @@ export async function syncFamilyRoster(
       signal: controller.signal,
     });
     if (!response.ok) {
-      logWarning(`Roster sync failed for ${family}: HTTP ${response.status}.`);
+      const detail = (await response.text()).replace(/\s+/g, " ").trim().slice(0, 500);
+      logWarning(`Roster sync failed for ${family}: HTTP ${response.status}${detail ? `: ${detail}` : "."}`);
       return false;
     }
     return true;
