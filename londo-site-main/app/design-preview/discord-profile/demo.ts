@@ -1,5 +1,4 @@
-import { badgeEntitlements, defaultSettings, profileProjection, validateSettings, type ProfileData } from "@/lib/profile-customization/settings";
-import { FAMILY_RANKS } from "@/lib/rank-appearance/catalog";
+import { defaultSettings, profileProjection, validateSettings, type ProfileData } from "@/lib/profile-customization/settings";
 
 export const SCENARIOS = { MEMPHIS: "MEMPHIS", PHOENIX: "PHOENIX", BOTH: "Две семьи", PRIVATE: "Скрытые поля", EMPTY: "Пустой профиль" };
 export type Scenario = keyof typeof SCENARIOS;
@@ -8,8 +7,7 @@ export type Scenario = keyof typeof SCENARIOS;
 export function demoProfile(scenario: Scenario, owner: boolean) {
   const empty = scenario === "EMPTY";
   const families = empty ? [] : scenario === "BOTH" ? ["MEMPHIS", "PHOENIX"] : [scenario === "PHOENIX" ? "PHOENIX" : "MEMPHIS"];
-  const mainRoleId = FAMILY_RANKS.find(rank => rank.key === "MAIN")?.roleId ?? null;
-  const availableBadges = badgeEntitlements("MEMBER", families.map(family => ({ family, rankRoleId: mainRoleId })));
+  const availableBadges = empty ? [] : [...new Set(["LND", ...families, "MAIN"])];
   const profile: ProfileData = {
     displayName: empty ? "Новый участник" : "Vofelion", avatarUrl: null,
     username: empty ? "new.member" : "vofelion.demo", gameNickname: empty ? null : "Vofelion Londo",
