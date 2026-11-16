@@ -1,14 +1,15 @@
 import "server-only";
 import {cache} from "react";
 import {prisma} from "@/lib/db/prisma";
+import {FAMILY_RANKS} from "./catalog";
 import {canManageRankColors,defaultRankColors,getRankColor,validateRankColors,type RankColors} from "./rules";
 export const getRankColors=cache(async():Promise<RankColors>=>{
  const rows=await prisma.rankAppearance.findMany({select:{roleId:true,color:true}});
- const colors=defaultRankColors();for(const row of rows)if(row.roleId in colors)colors[row.roleId]=getRankColor(row.roleId,{[row.roleId]:row.color});return colors;
+ const colors=defaultRankColors(FAMILY_RANKS);for(const row of rows)if(row.roleId in colors)colors[row.roleId]=getRankColor(row.roleId,{[row.roleId]:row.color});return colors;
 });
 export async function saveRankColors(actor:{id:string;effectiveAccess:string;status:string},body:unknown){
  if(!canManageRankColors(actor))throw Error("Настраивать цвета рангов может только администрация.");
- const colors=validateRankColors(body);
+ const colors=validateRankColors(body,FAMILY_RANKS);
  return prisma.$transaction(async tx=>{
   // Serializes this settings page's writes so audit previousColor is accurate.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(71930428)`;
