@@ -18,20 +18,23 @@ test("catalog contains each configured role exactly once",()=>{
  assert.ok(FAMILY_RANKS.every(rank=>rank.scopes.includes("MEMPHIS")));
 });
 test("HEX normalization applies to configured recruit ranks",()=>{
- const recruit=FAMILY_RANKS.find(rank=>rank.key==="MEMPHIS_RECRUIT")!.roleId,colors=validateRankColors({...defaultRankColors(),[recruit]:"#00c7a5"});
+ const defaults=defaultRankColors(FAMILY_RANKS),recruit=FAMILY_RANKS.find(rank=>rank.key==="MEMPHIS_RECRUIT")!.roleId,colors=validateRankColors({...defaults,[recruit]:"#00c7a5"},FAMILY_RANKS);
  assert.equal(getRankColor(recruit,colors),"#00C7A5");
 });
 test("invalid HEX and CSS injection rejected",()=>{
- for(const color of ["red","123456","#fff","#12345678","rgb(1,2,3)","url(x)","var(--x)","expression(x)","#FFFFFF;display:none",null,{}])assert.throws(()=>validateRankColors({...defaultRankColors(),[FAMILY_RANKS[0].roleId]:color}));
+ const defaults=defaultRankColors(FAMILY_RANKS);
+ for(const color of ["red","123456","#fff","#12345678","rgb(1,2,3)","url(x)","var(--x)","expression(x)","#FFFFFF;display:none",null,{}])assert.throws(()=>validateRankColors({...defaults,[FAMILY_RANKS[0].roleId]:color},FAMILY_RANKS));
 });
 test("arbitrary ranks, unknown role IDs and rank metadata cannot be created",()=>{
- assert.throws(()=>validateRankColors({...defaultRankColors(),unknown:"#FFFFFF"}));
- const colors:Record<string,unknown>={...defaultRankColors()};delete colors[FAMILY_RANKS[0].roleId];colors.fake="#FFFFFF";assert.throws(()=>validateRankColors(colors));
- assert.throws(()=>validateRankColors({...defaultRankColors(),displayName:"New rank"}));
+ const defaults=defaultRankColors(FAMILY_RANKS);
+ assert.throws(()=>validateRankColors({...defaults,unknown:"#FFFFFF"},FAMILY_RANKS));
+ const colors:Record<string,unknown>={...defaults};delete colors[FAMILY_RANKS[0].roleId];colors.fake="#FFFFFF";assert.throws(()=>validateRankColors(colors,FAMILY_RANKS));
+ assert.throws(()=>validateRankColors({...defaults,displayName:"New rank"},FAMILY_RANKS));
 });
 test("missing, unknown and corrupt appearance use fallback",()=>{
  for(const id of [null,undefined,"fake",FAMILY_RANKS[0].roleId])assert.equal(getRankColor(id),DEFAULT_RANK_COLOR);
  assert.equal(getRankColor(FAMILY_RANKS[0].roleId,{[FAMILY_RANKS[0].roleId]:"url(x)"}),DEFAULT_RANK_COLOR);
+ assert.equal(getRankColor("unknown",{"unknown":"#12AB34"}),"#12AB34");
 });
 
 test("profile, public, preview and compact use mapped colors; rank privacy is preserved",()=>{

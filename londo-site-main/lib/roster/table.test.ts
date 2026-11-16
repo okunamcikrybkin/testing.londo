@@ -1,24 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { FAMILY_RANKS } from "../rank-appearance/catalog";
 import type { RosterEntry } from "./data";
 import { selectRoster, nextRosterSort, DEFAULT_SORT, compareDecimal, ROSTER_COLUMNS } from "./table";
 const row = (id: string, nickname: string, overrides: Partial<RosterEntry> = {}): RosterEntry => ({ discordUserId: id, gameNickname: nickname, discordDisplayName: nickname, username: nickname, birthday: null, profileId: id, staticId: null, rankDisplayName: null, rankPriority: null, totalVoiceSeconds: BigInt(0), balance: "0", ...overrides });
-const a = row("1", "Vafelion", {staticId:"288125", rankDisplayName:"Londo", rankRoleId:FAMILY_RANKS.find(rank=>rank.key==="LONDO")!.roleId, balance:"2004053.7296", totalVoiceSeconds:BigInt(6720)});
-const b = row("2", "Other", {staticId:"566", rankDisplayName:"Londest Londo", balance:"3.7296"});
+const a = row("1", "Vafelion", {staticId:"288125", rankDisplayName:"Londo", rankPriority:4, rankRoleId:"test-londo", balance:"2004053.7296", totalVoiceSeconds:BigInt(6720)});
+const b = row("2", "Other", {staticId:"566", rankDisplayName:"Londest Londo", rankPriority:5, balance:"3.7296"});
 test("partial case-insensitive search across names, static, Discord and rank", () => {
   for (const q of ["vaf", " VAF ", "881", "1"]) assert.deepEqual(selectRoster([a,b],q).map(r=>r.discordUserId),[a.discordUserId]);
   assert.equal(selectRoster([a,b],"lon").length,2);
   assert.equal(selectRoster([a,b],"566")[0],b);
   assert.equal(selectRoster([a,b],"missing").length,0);
 });
-test("canonical hierarchy uses both family role IDs; unranked last in both directions", () => {
-  const rows=FAMILY_RANKS.map((r,i)=>row(String(i+1),r.label,{rankRoleId:r.roleId,rankDisplayName:r.label}));
+test("canonical hierarchy follows synchronized priority; unranked last in both directions", () => {
+  const ranks=[["Owner",12],["Dep. Owner",10],["High Staff",9],["Recruit",7],["Main",6],["Londest Londo",5],["Londo",4],["Young Londo",3],["Baby Londo",2],["Newbie",1]] as const;
+  const rows=ranks.map(([label,priority],i)=>row(String(i+1),label,{rankRoleId:`role-${i}`,rankDisplayName:label,rankPriority:priority}));
   const unranked=row("999","AAA");
   for(const direction of ["asc","desc"] as const){
     const result=selectRoster([unranked,...rows.reverse()],"",{key:"rank",direction});
     assert.equal(result.at(-1),unranked);
-    const priorities=result.slice(0,-1).map(r=>FAMILY_RANKS.find(x=>x.roleId===r.rankRoleId)!.priority);
+    const priorities=result.slice(0,-1).map(r=>r.rankPriority!);
     assert.deepEqual(priorities,[...priorities].sort((a,b)=>direction==="desc"?b-a:a-b));
   }
   assert.equal(selectRoster(rows,"")[0].rankDisplayName,"Owner");

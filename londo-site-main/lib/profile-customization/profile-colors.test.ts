@@ -4,6 +4,7 @@ import {createRequire} from "node:module";
 import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {FAMILY_RANK_ENV_NAMES} from "../rank-appearance/metadata";
 import {defaultSettings,validateSettings,profileProjection,type ProfileSettings} from "./settings";
 import {DEFAULT_PROFILE_TOP,DEFAULT_PROFILE_BOTTOM,profileAppearance} from "./surface-colors";
 
@@ -50,6 +51,19 @@ test("real ProfileView ignores legacy fields and renders saved colors for owner/
   const invalid={...settings,profileTopColor:"url(evil)",profileBottomColor:"#fff;"} as ProfileSettings;
   assert.ok(!render({profile,settings:invalid}).includes("url(evil)"));
  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test("profile client bundle does not require server-side Discord role variables",()=>{
+ const require=createRequire(import.meta.url),esbuild=require("esbuild"),dir=mkdtempSync(join(tmpdir(),"londo-profile-client-"));
+ const original=FAMILY_RANK_ENV_NAMES.map(name=>[name,process.env[name]] as const);
+ try{
+  for(const [name] of original)delete process.env[name];
+  esbuild.buildSync({stdin:{contents:`import {ProfileView} from './components/profile/profile-view';export{ProfileView};`,loader:"tsx",resolveDir:process.cwd()},bundle:true,jsx:"automatic",platform:"node",format:"cjs",outfile:join(dir,"profile.cjs"),loader:{".module.css":"local-css"},logLevel:"silent"});
+  require(join(dir,"profile.cjs"));
+ }finally{
+  for(const [name,value] of original){if(value===undefined)delete process.env[name];else process.env[name]=value;}
+  rmSync(dir,{recursive:true,force:true});
+ }
 });
 
 test("worst-case white profile surfaces retain WCAG AA body text contrast",()=>{

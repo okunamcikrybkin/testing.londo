@@ -1,7 +1,6 @@
 import {normalizeFrame,type AvatarFrame} from "./frames";
 import {normalizeAccent, type AccentColor} from "./colors";
 import {DEFAULT_PROFILE_TOP,DEFAULT_PROFILE_BOTTOM,normalizeProfileColor} from "./surface-colors";
-import { FAMILY_RANKS } from "../rank-appearance/catalog";
 // Legacy options remain accepted for older clients; current presentation ignores them.
 export const THEMES=["DEFAULT","RED","BLUE","TEAL","PURPLE","GOLD","DARK"] as const;
 export const ACCENTS=["THEME","RED","BLUE","TEAL","PURPLE","GOLD","WHITE"] as const;
@@ -39,6 +38,3 @@ export function profileProjection(profile:ProfileData,settings:ProfileSettings,o
  if(ownerPreview||settings.showRank){data.rankRoleIds=profile.rankRoleIds;data.rankColors=profile.rankColors;}
  if(ownerPreview||settings.showCharacters){const characters=settings.characters.filter(character=>character.enabled).sort((a,b)=>a.sortOrder-b.sortOrder);if(characters.length)data.characters=characters;}
  const visible={...settings,selectedBadges:(ownerPreview||settings.showBadges)?settings.selectedBadges.filter(b=>profile.availableBadges?.includes(b)):[],links:(ownerPreview||settings.showSocialLinks)?settings.links.filter(l=>l.enabled):[],games:(ownerPreview||settings.showGames)?settings.games:[],favoriteGame:(ownerPreview||settings.showGames)?settings.favoriteGame:null};return {profile:data,settings:visible};}
-const BADGE_RANKS: Record<string, string> = { MAIN: "MAIN", MEMPHIS_RECRUIT: "RECRUIT MEMPHIS", MEMPHIS_CUR_RECRUIT: "CUR. RECRUIT", MEMPHIS_HIGH_STAFF: "HIGH STAFF", MEMPHIS_DEP_OWNER: "DEP. OWNER" };
-const BADGE_BY_ROLE_ID = new Map(FAMILY_RANKS.flatMap(rank => BADGE_RANKS[rank.key] ? [[rank.roleId, BADGE_RANKS[rank.key]] as const] : []));
-export function badgeEntitlements(role:string,memberships:readonly {family:string;rankRoleId:string|null}[]){const badges=new Set<string>();if(memberships.length)badges.add("LND");for(const m of memberships){badges.add(m.family);const rank=BADGE_BY_ROLE_ID.get(m.rankRoleId??"");if(rank)badges.add(rank);}if(role==="OWNER")badges.add("OWNER");return [...badges];}
