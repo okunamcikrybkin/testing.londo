@@ -1,5 +1,4 @@
 import type { RosterEntry } from "./data";
-import { FAMILY_RANKS } from "../rank-appearance/catalog";
 
 export const ROSTER_COLUMNS = [
   { key: "name", label: "Имя" }, { key: "static", label: "Статик" },
@@ -13,7 +12,6 @@ export function nextRosterSort(current: RosterSort, key: SortKey): RosterSort {
   return { key, direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "name" ? "asc" : "desc" };
 }
 const names = new Intl.Collator("ru", { sensitivity: "base", numeric: true });
-const rankPriority = new Map(FAMILY_RANKS.map(rank => [rank.roleId, rank.priority]));
 const name = (row: RosterEntry) => row.gameNickname ?? row.discordDisplayName;
 const compareInteger = (a: string, b: string) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0;
 
@@ -41,7 +39,7 @@ export function selectRoster(rows: readonly RosterEntry[], query: string, sort: 
       if (emptyA !== emptyB) return emptyA ? 1 : -1;
       if (!emptyA && !emptyB) result = compareInteger(a.staticId!, b.staticId!);
     } else if (sort.key === "rank") {
-      const x = a.rankPriority ?? rankPriority.get(a.rankRoleId ?? "") ?? 0, y = b.rankPriority ?? rankPriority.get(b.rankRoleId ?? "") ?? 0;
+      const x = a.rankPriority ?? 0, y = b.rankPriority ?? 0;
       if ((x === 0) !== (y === 0)) return x === 0 ? 1 : -1;
       result = x - y;
     } else if (sort.key === "name") result = names.compare(name(a), name(b));

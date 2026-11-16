@@ -1,4 +1,5 @@
 import {getRankColors} from "@/lib/rank-appearance/service";
+import {FAMILY_RANKS} from "@/lib/rank-appearance/catalog";
 import {getRankColor} from "@/lib/rank-appearance/rules";
 import type { Family } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
@@ -6,6 +7,7 @@ import { formatBirthdayLabel } from "@/lib/profile/birthday";
 import { rosterIdentity } from "./profile-identity";
 
 export type RosterEntry = { rankRoleId?:string|null; rankColor?:string; afkUntil?: string | null; balance: string; birthday: string | null; discordDisplayName: string; discordUserId: string; profileId: string; gameNickname: string | null; rankDisplayName: string | null; rankPriority: number | null; staticId: string | null; totalVoiceSeconds: bigint; username: string };
+const rankPriorityByRoleId = new Map(FAMILY_RANKS.map(rank => [rank.roleId, rank.priority]));
 
 /** Reads the current bot-synchronized roster, highest configured rank first. */
 export async function getFamilyRoster(family: Family): Promise<RosterEntry[]> {
@@ -26,7 +28,7 @@ export async function getFamilyRoster(family: Family): Promise<RosterEntry[]> {
     const profile = profileById.get(row.discordUserId);
     const user = userByDiscordId.get(row.discordUserId);
     const identity = rosterIdentity(row.identity, customizationByDiscordId.get(row.discordUserId));
-    return { rankRoleId: row.rankRoleId, rankColor: getRankColor(row.rankRoleId, colors), afkUntil: afkById.get(row.discordUserId) ?? null, balance: profile?.balance.toString() ?? "0", birthday: formatBirthdayLabel(user?.birthdayMonth, user?.birthdayDay, user?.birthdayYear), discordDisplayName: row.identity.displayName, discordUserId: row.discordUserId, profileId: user?.id ?? row.discordUserId, gameNickname: identity.gameNickname, rankDisplayName: row.rankDisplayName, rankPriority: row.rankPriority, staticId: identity.staticId, totalVoiceSeconds: profile?.totalVoiceSeconds ?? BigInt(0), username: row.identity.username };
+    return { rankRoleId: row.rankRoleId, rankColor: getRankColor(row.rankRoleId, colors), afkUntil: afkById.get(row.discordUserId) ?? null, balance: profile?.balance.toString() ?? "0", birthday: formatBirthdayLabel(user?.birthdayMonth, user?.birthdayDay, user?.birthdayYear), discordDisplayName: row.identity.displayName, discordUserId: row.discordUserId, profileId: user?.id ?? row.discordUserId, gameNickname: identity.gameNickname, rankDisplayName: row.rankDisplayName, rankPriority: row.rankPriority ?? rankPriorityByRoleId.get(row.rankRoleId ?? "") ?? null, staticId: identity.staticId, totalVoiceSeconds: profile?.totalVoiceSeconds ?? BigInt(0), username: row.identity.username };
   }).sort((left, right) => (right.rankPriority ?? -1) - (left.rankPriority ?? -1) || (left.gameNickname ?? left.discordDisplayName).localeCompare(right.gameNickname ?? right.discordDisplayName, "ru"));
 }
 
