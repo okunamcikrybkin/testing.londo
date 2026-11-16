@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db/prisma";
 const DISCORD_ID = /^\d{17,20}$/;
 const FAMILIES = ["MEMPHIS"] as const;
 const MAX_MEMBERS = 2_000;
+const ROSTER_TRANSACTION_TIMEOUT_MS = 30_000;
+const ROSTER_TRANSACTION_MAX_WAIT_MS = 10_000;
 type RankInput = { rankDisplayName: string; rankKey: string; rankPriority: number; rankRoleId: string } | null;
 type RosterMemberInput = { avatarUrl: string | null; discordDisplayName: string; discordUserId: string; discordUsername: string; gameNickname: string; rank: RankInput; staticId: string | null };
 type RosterSnapshotInput = { family: typeof FAMILIES[number]; members: RosterMemberInput[]; serverId: string };
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
       }
       await transaction.familyMembership.updateMany({ where: { family: snapshot.family, active: true, discordUserId: { notIn: snapshot.members.map((member) => member.discordUserId) } }, data: { active: false, lastSyncedAt: syncedAt } });
       return changes;
-    });
+    }, { maxWait: ROSTER_TRANSACTION_MAX_WAIT_MS, timeout: ROSTER_TRANSACTION_TIMEOUT_MS });
     return NextResponse.json({ accepted: true, rankChanges }, { status: 200 });
   } catch (error) {
     const detail = describePersistenceError(error);

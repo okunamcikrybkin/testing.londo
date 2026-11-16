@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type {Guild,Interaction} from "discord.js";
 import {MessageFlags} from "discord.js";
-import {applicationSiteUrl,createApplicationPanel,handleApplicationInteraction,ensureApplicationPanel} from "./applicationPanel.js";
+import {applicationSiteUrl,createApplicationPanel,handleApplicationInteraction,ensureApplicationPanel,isApplicationPanelMessage} from "./applicationPanel.js";
 import {applicationMembership,applicationMemberRoles} from "./applicationMembership.js";
 import {validateApplicationAnswers} from "./applicationIntake.js";
 test("application panel explains the joining process and links to the application form",()=>{const panel=createApplicationPanel("https://londo.example");assert.equal(panel.flags,MessageFlags.IsComponentsV2);const text=JSON.stringify(panel);assert.match(text,/https:\/\/londo.example\/apply/);assert.match(text,/Стань частью семьи LONDO/);assert.match(text,/Дождись ответа/);assert.match(text,/Заполнить анкету/);assert.ok(!text.includes("londo-application-panel"));assert.ok(!("embeds" in panel));});
+test("application panel recognizer finds current V2 panels and ignores other authors or content",()=>{const panel=createApplicationPanel("https://londo.example");const message={author:{id:"bot"},embeds:[],components:panel.components} as unknown as import("discord.js").Message;assert.equal(isApplicationPanelMessage(message,"bot"),true);assert.equal(isApplicationPanelMessage(message,"other"),false);assert.equal(isApplicationPanelMessage({...message,components:[]},"bot"),false);});
 test("invalid public URL never creates a broken Discord button",()=>{for(const url of ["","http://example.com","https://localhost","https://127.0.0.1"]){assert.equal(applicationSiteUrl(url),null);assert.throws(()=>createApplicationPanel(url));}});
 test("local HTTP URLs are allowed only outside production",()=>{const old=process.env.NODE_ENV;try{process.env.NODE_ENV="development";assert.equal(applicationSiteUrl("http://localhost:3000"),"http://localhost:3000/apply");assert.equal(applicationSiteUrl("http://127.0.0.1:3000"),"http://127.0.0.1:3000/apply");assert.equal(applicationSiteUrl("http://192.168.1.2:3000"),null);process.env.NODE_ENV="production";assert.equal(applicationSiteUrl("http://localhost:3000"),null);}finally{if(old===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=old;}});
 test("legacy select/button/open modal all return migration reply without submission",async()=>{

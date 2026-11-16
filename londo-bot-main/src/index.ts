@@ -249,9 +249,8 @@ async function start(): Promise<void> {
       }
       const memphisMembers = getFamilyMembers(members.values(), "MEMPHIS", config.roles);
       const memphisRoster = getFamilyRoster(members.values(), "MEMPHIS", config.roles);
-      for (const member of memphisRoster) {
-        if (!member.rank) logWarning(`Roster member has no configured rank: family ${member.family}; Discord ID ${member.discordUserId}.`);
-      }
+      const unrankedMembers = memphisRoster.filter((member) => !member.rank).length;
+      if (unrankedMembers) logInfo(`MEMPHIS roster includes ${unrankedMembers} member(s) without a configured rank; they will appear unranked.`);
 
       logInfo("Connected successfully.");
       logInfo(`Guild: ${guild.name}`);

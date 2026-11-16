@@ -13,6 +13,13 @@ type ActiveRole = { discordId: string; grantedAt: string };
 type BirthdayRoleGrant = { discordId: string; birthdayRoleGrantedAt: string };
 type BirthdaySnapshot = { users: BirthdayUser[]; activeRoles: ActiveRole[] };
 
+export function birthdayRoleIssue(role: Role | null): string | null {
+  if (!role) return "configured role was not found in the server; verify BIRTHDAY_ROLE_ID";
+  if (role.managed) return "configured role is managed by an integration and cannot be assigned by the bot";
+  if (!role.editable) return "bot cannot assign the configured role; grant Manage Roles and move its highest role above the birthday role";
+  return null;
+}
+
 function dateInZone(date: Date): { month: number; day: number; year: number } {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: BIRTHDAY_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
@@ -53,6 +60,7 @@ async function sendBirthdayAction(config: SiteLogConfig, action: "CELEBRATED" | 
 export class BirthdayManager {
   #timer: NodeJS.Timeout | null = null;
   #running = false;
+  #lastSyncFailure: string | null = null;
   #expirationTimers = new Map<string, NodeJS.Timeout>();
   #grantTimes = new Map<string, number>();
 
@@ -141,7 +149,9 @@ export class BirthdayManager {
       const today = dateInZone(now);
       const snapshot = await loadBirthdays(this.siteConfig, now);
       const role = await this.guild.roles.fetch(this.config.roleId);
-      if (!role || role.managed || !role.editable) throw new Error("birthday role is unavailable or not assignable");
+      if (!role) throw new Error(birthdayRoleIssue(role) ?? "configured role was not found");
+      const roleIssue = birthdayRoleIssue(role);
+      if (roleIssue) throw new Error(roleIssue);
 
       const activeIds = new Set(snapshot.activeRoles.map((grant) => grant.discordId));
       for (const grant of snapshot.activeRoles) {
@@ -191,9 +201,12 @@ export class BirthdayManager {
         try { await member.roles.remove(role, "LONDO: birthday role has no active 24-hour grant"); }
         catch { logWarning(`[BIRTHDAY] Untimed role could not be removed from Discord ID ${member.id}.`); }
       }
+      if (this.#lastSyncFailure) logInfo("[BIRTHDAY] Sync recovered.");
+      this.#lastSyncFailure = null;
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown error";
-      logWarning(`[BIRTHDAY] Daily sync failed: ${reason}.`);
+      if (reason !== this.#lastSyncFailure) logWarning(`[BIRTHDAY] Sync failed: ${reason}.`);
+      this.#lastSyncFailure = reason;
     } finally {
       this.#running = false;
     }

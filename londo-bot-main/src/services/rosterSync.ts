@@ -3,7 +3,7 @@ import type { SiteLogConfig } from "../config/siteLogs.js";
 import type { RosterMember } from "./members.js";
 import { logWarning } from "../utils/logger.js";
 
-const ROSTER_TIMEOUT_MS = 8_000;
+const ROSTER_TIMEOUT_MS = 40_000;
 
 type FetchImplementation = (input: string | URL, init?: RequestInit) => Promise<Response>;
 

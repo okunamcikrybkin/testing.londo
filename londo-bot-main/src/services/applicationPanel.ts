@@ -1,10 +1,11 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder, type ApplicationCommandDataResolvable, type ChatInputCommandInteraction, type Guild, type Interaction } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder, type ApplicationCommandDataResolvable, type ChatInputCommandInteraction, type Guild, type Interaction, type Message } from "discord.js";
 import { readFile, mkdir, writeFile, rename } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { logWarning } from "../utils/logger.js";
 
 const MARKER="londo-application-panel";
 const OLD_TITLE="👋 ПУТЬ В СЕМЬЮ НАЧИНАЕТСЯ ЗДЕСЬ!";
+const PANEL_TITLE="Стань частью семьи LONDO";
 const file=resolve("data/application-panel.json");
 export function applicationSiteUrl(value=process.env.PUBLIC_SITE_URL):string|null {
  try{const u=new URL(value??"");const localHttp=process.env.NODE_ENV!=="production"&&u.protocol==="http:"&&(u.hostname==="localhost"||u.hostname==="127.0.0.1");if((u.protocol!=="https:"&&!localHttp)||u.username||u.password||(!localHttp&&(!u.hostname.includes(".")||/^(localhost|127\.|0\.|\[|10\.|192\.168\.)/.test(u.hostname)||u.hostname.endsWith(".localhost"))))return null;return new URL("/apply",u.origin).href;}catch{return null;}
@@ -21,6 +22,11 @@ export function createApplicationPanel(value=process.env.PUBLIC_SITE_URL){
  return {flags:MessageFlags.IsComponentsV2 as const,components:[container],allowedMentions:{parse:[] as []}};
 }
 function missing(error:unknown){return !!error&&typeof error==="object"&&"code" in error&&error.code===10008;}
+export function isApplicationPanelMessage(message:Pick<Message,"author"|"embeds"|"components">,botUserId:string):boolean{
+ if(message.author.id!==botUserId)return false;
+ const components=JSON.stringify(message.components);
+ return message.embeds.some(embed=>embed.title===OLD_TITLE)||components.includes(MARKER)||(components.includes(PANEL_TITLE)&&components.includes("Заполнить анкету"));
+}
 let publishing:Promise<string|null>|null=null;
 export async function ensureApplicationPanel(guild:Guild,channelId:string):Promise<string|null>{
  if(!applicationSiteUrl()){logWarning("[Applications] PUBLIC_SITE_URL не настроен: публикация виджета пропущена.");return null;}
@@ -31,7 +37,12 @@ export async function ensureApplicationPanel(guild:Guild,channelId:string):Promi
   const key=`${guild.id}:${channelId}`,known=saved[key]??process.env.APPLICATION_PANEL_MESSAGE_ID;
   let current=known?await channel.messages.fetch(known).catch(e=>{if(missing(e))return null;throw e;}):null;
   if(current&&current.author.id!==guild.client.user.id)throw Error("Настроенный виджет не принадлежит боту.");
-  if(!current){let before:string|undefined;for(;;){const recent=await channel.messages.fetch({limit:100,...(before?{before}:{})});current=recent.find(m=>m.author.id===guild.client.user.id&&(m.embeds.some(e=>e.title===OLD_TITLE)||JSON.stringify(m.components).includes(MARKER)))??null;if(current||recent.size<100)break;before=recent.last()?.id;}}
+  if(current&&!isApplicationPanelMessage(current,guild.client.user.id))current=null;
+  const recent=await channel.messages.fetch({limit:100});
+  let matches=[...recent.values()].filter(message=>isApplicationPanelMessage(message,guild.client.user.id));
+  if(!matches.length&&!current){let before=recent.last()?.id;while(before){const older=await channel.messages.fetch({limit:100,before});matches=[...older.values()].filter(message=>isApplicationPanelMessage(message,guild.client.user.id));if(matches.length||older.size<100)break;before=older.last()?.id;}}
+  if(matches.length)current=matches.reduce((latest,message)=>message.createdTimestamp>latest.createdTimestamp?message:latest);
+  for(const duplicate of matches){if(duplicate.id===current?.id)continue;try{await duplicate.delete();}catch{logWarning("[Applications] Не удалось удалить повторную панель заявок.");}}
   const panel=createApplicationPanel();
   if(current){try{await current.edit({...panel,content:null,embeds:[],attachments:[]});}catch(e){if(!missing(e)&&!(e&&typeof e==="object"&&"code" in e&&e.code===50035))throw e;current=await channel.send(panel);}}
   else current=await channel.send(panel);
