@@ -1,16 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { persistRosterSnapshot, type RosterSnapshotInput } from "@/lib/roster/persist";
 
 const DISCORD_ID = /^\d{17,20}$/;
 const FAMILIES = ["MEMPHIS"] as const;
 const MAX_MEMBERS = 2_000;
-const ROSTER_TRANSACTION_TIMEOUT_MS = 30_000;
-const ROSTER_TRANSACTION_MAX_WAIT_MS = 10_000;
 type RankInput = { rankDisplayName: string; rankKey: string; rankPriority: number; rankRoleId: string } | null;
-type RosterMemberInput = { avatarUrl: string | null; discordDisplayName: string; discordUserId: string; discordUsername: string; gameNickname: string; rank: RankInput; staticId: string | null };
-type RosterSnapshotInput = { family: typeof FAMILIES[number]; members: RosterMemberInput[]; serverId: string };
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.LONDO_BOT_API_SECRET;
@@ -61,22 +56,7 @@ export async function POST(request: NextRequest) {
   try { snapshot = parseSnapshot(JSON.parse(body)); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid roster snapshot." }, { status: 400 }); }
   try {
-    const syncedAt = new Date();
-    const rankChanges = await prisma.$transaction(async (transaction) => {
-      const existing = await transaction.familyMembership.findMany({ where: { family: snapshot.family }, select: { active: true, discordUserId: true, rankKey: true } });
-      const previousByDiscordId = new Map(existing.map((membership) => [membership.discordUserId, membership])); let changes = 0;
-      for (const member of snapshot.members) {
-        await transaction.discordIdentity.upsert({ where: { discordUserId: member.discordUserId }, create: { discordUserId: member.discordUserId, username: member.discordUsername, displayName: member.discordDisplayName, avatarUrl: member.avatarUrl, gameNickname: member.gameNickname, staticId: member.staticId }, update: { username: member.discordUsername, displayName: member.discordDisplayName, avatarUrl: member.avatarUrl, gameNickname: member.gameNickname, staticId: member.staticId } });
-        const previous = previousByDiscordId.get(member.discordUserId);
-        await transaction.familyMembership.upsert({ where: { discordUserId_family: { discordUserId: member.discordUserId, family: snapshot.family } }, create: { discordUserId: member.discordUserId, family: snapshot.family, active: true, rankKey: member.rank?.rankKey, rankDisplayName: member.rank?.rankDisplayName, rankRoleId: member.rank?.rankRoleId, rankPriority: member.rank?.rankPriority, lastSyncedAt: syncedAt }, update: { active: true, rankKey: member.rank?.rankKey, rankDisplayName: member.rank?.rankDisplayName, rankRoleId: member.rank?.rankRoleId, rankPriority: member.rank?.rankPriority, lastSyncedAt: syncedAt } });
-        if (previous?.active && previous.rankKey !== (member.rank?.rankKey ?? null)) {
-          changes += 1;
-          await transaction.logEvent.create({ data: { source: "LONDO_BOT", sourceEventId: `roster-rank:${snapshot.family}:${member.discordUserId}:${previous.rankKey ?? "none"}:${member.rank?.rankKey ?? "none"}:${syncedAt.getTime()}`, type: "ROSTER_RANK_CHANGED", category: "RANK", action: "ROSTER_RANK_CHANGED", result: "SUCCESS", family: snapshot.family, serverId: snapshot.serverId, targetDiscordId: member.discordUserId, targetUsername: member.discordUsername, targetDisplayName: member.discordDisplayName, summary: `Roster rank changed: ${previous.rankKey ?? "Без ранга"} → ${member.rank?.rankKey ?? "Без ранга"}.`, metadata: { discordUserId: member.discordUserId, family: snapshot.family, oldRank: previous.rankKey, newRank: member.rank?.rankKey ?? null } as Prisma.InputJsonValue } });
-        }
-      }
-      await transaction.familyMembership.updateMany({ where: { family: snapshot.family, active: true, discordUserId: { notIn: snapshot.members.map((member) => member.discordUserId) } }, data: { active: false, lastSyncedAt: syncedAt } });
-      return changes;
-    }, { maxWait: ROSTER_TRANSACTION_MAX_WAIT_MS, timeout: ROSTER_TRANSACTION_TIMEOUT_MS });
+    const rankChanges = await persistRosterSnapshot(snapshot);
     return NextResponse.json({ accepted: true, rankChanges }, { status: 200 });
   } catch (error) {
     const detail = describePersistenceError(error);
