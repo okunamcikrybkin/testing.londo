@@ -9,12 +9,15 @@ export async function accessPageData(user: SessionUser) {
     prisma.staffAccessRequest.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 50 }),
   ]);
   const manager = canUseFeature(user.effectiveAccess,"accessManagement");
-  const safeUser = { id: true, discordId: true, displayName: true, username: true, avatar: true, staffAccessCredential: { select: { pinSetAt: true } } } as const;
-  const pending = manager ? await prisma.staffAccessRequest.findMany({ where: { status: "PENDING" }, include: { user: { select: safeUser } }, orderBy: { createdAt: "asc" } }) : [];
-  const active = manager ? await prisma.staffAccessGrant.findMany({ where: { revokedAt: null }, include: { user: { select: safeUser } }, orderBy: { grantedAt: "desc" } }) : [];
-  const history = manager ? await prisma.staffAccessGrant.findMany({ where: { revokedAt: { not: null } }, include: { user: { select: safeUser } }, orderBy: { revokedAt: "desc" }, take: 100 }) : [];
-  const reviewed = manager ? await prisma.staffAccessRequest.findMany({ where: { status: { not: "PENDING" } }, include: { user: { select: safeUser } }, orderBy: { updatedAt: "desc" }, take: 100 }) : [];
+  const safeUser = { id: true, discordId: true, displayName: true, username: true, avatar: true, role: true, staffAccessCredential: { select: { pinSetAt: true } } } as const;
+  const [pending, active, history, reviewed] = await Promise.all([
+    manager ? prisma.staffAccessRequest.findMany({ where: { status: "PENDING" }, include: { user: { select: safeUser } }, orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
+    manager ? prisma.staffAccessGrant.findMany({ where: { revokedAt: null }, include: { user: { select: safeUser } }, orderBy: { grantedAt: "desc" } }) : Promise.resolve([]),
+    manager ? prisma.staffAccessGrant.findMany({ where: { revokedAt: { not: null } }, include: { user: { select: safeUser } }, orderBy: { revokedAt: "desc" }, take: 100 }) : Promise.resolve([]),
+    manager ? prisma.staffAccessRequest.findMany({ where: { status: { not: "PENDING" } }, include: { user: { select: safeUser } }, orderBy: { updatedAt: "desc" }, take: 100 }) : Promise.resolve([]),
+  ]);
   const ids = [...new Set([...active, ...history].flatMap(g => [g.grantedByUserId, g.revokedByUserId]).concat(reviewed.map(r => r.reviewedByUserId)).filter((id): id is string => Boolean(id)))];
   const actors = ids.length ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true } }) : [];
-  return { snapshot, grant, requests, manager, pending, active, history: history.map(item => ({ ...item, revokeReason: item.revokeReason ? accessReasonLabels[item.revokeReason] ?? (item.revokeReason.includes("_") ? "Изменение доступа по системной проверке" : item.revokeReason) : item.revokeReason })), reviewed, actors: Object.fromEntries(actors.map(actor => [actor.id, actor.displayName])) };
+  const visibleActive = active.map(item => item.user.role === "CURATOR" ? { ...item, role: "CURATOR" as const, memphisRole: "CURATOR" as const } : item);
+  return { snapshot, grant, requests, manager, pending, active: visibleActive, history: history.map(item => ({ ...item, revokeReason: item.revokeReason ? accessReasonLabels[item.revokeReason] ?? (item.revokeReason.includes("_") ? "Изменение доступа по системной проверке" : item.revokeReason) : item.revokeReason })), reviewed, actors: Object.fromEntries(actors.map(actor => [actor.id, actor.displayName])) };
 }

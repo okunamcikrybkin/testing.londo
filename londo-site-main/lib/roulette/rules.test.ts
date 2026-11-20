@@ -6,7 +6,7 @@ import { pointerIndex, winningRotation } from "./wheel";
 const user={id:"u",discordId:"d",effectiveAccess:"FAMQ",status:"ACTIVE"};
 test("roulette requires an active authenticated user; admin access is OWNER/FULL_ACCESS",()=>{
   assert.throws(()=>requirePlayer(null));assert.throws(()=>requirePlayer({...user,status:"BANNED"}));assert.doesNotThrow(()=>requirePlayer(user));
-  for(const effectiveAccess of ["USER","RECRUIT","HIGH_STAFF"])assert.throws(()=>requireAdmin({...user,effectiveAccess}));
+  for(const effectiveAccess of ["USER","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER"])assert.throws(()=>requireAdmin({...user,effectiveAccess}));
   for(const effectiveAccess of ["OWNER","FULL_ACCESS"])assert.ok(canManage({...user,effectiveAccess}));
 });
 test("history always scopes players to themselves; global history requires admin",()=>{

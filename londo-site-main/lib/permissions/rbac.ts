@@ -2,10 +2,10 @@ import "server-only";
 import {canUseFeature,meetsAccess} from "./features";
 import {parseFullAccessDiscordIds} from "./full-access";
 
-export const USER_ROLES = ["USER", "RECRUIT", "HIGH_STAFF", "OWNER"] as const;
+export const USER_ROLES = ["USER", "RECRUIT", "CURATOR", "HIGH_STAFF", "DEP_OWNER", "OWNER"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const EFFECTIVE_ACCESS_LEVELS = ["USER", "FAMQ", "RECRUIT", "HIGH_STAFF", "OWNER", "FULL_ACCESS"] as const;
+export const EFFECTIVE_ACCESS_LEVELS = ["USER", "FAMQ", "RECRUIT", "CURATOR", "HIGH_STAFF", "DEP_OWNER", "OWNER", "FULL_ACCESS"] as const;
 export type EffectiveAccess = (typeof EFFECTIVE_ACCESS_LEVELS)[number];
 
 export const USER_STATUSES = ["ACTIVE", "SUSPENDED", "BANNED"] as const;
@@ -21,6 +21,7 @@ export const PERMISSIONS = [
   "settings.manage",
   "bot.manage",
   "admin.access",
+  "recruit.statistics",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -30,7 +31,9 @@ export const ACCESS_LABELS: Record<EffectiveAccess, string> = {
   USER: "Участник",
   FAMQ: "Участник семьи",
   RECRUIT: "Рекрутер",
+  CURATOR: "Куратор рекрутов",
   HIGH_STAFF: "Старший сотрудник",
+  DEP_OWNER: "Заместитель (DEP.OWNER)",
   OWNER: "Владелец",
   FULL_ACCESS: "Администратор сайта",
 };
@@ -41,18 +44,10 @@ const ALL_PERMISSIONS: readonly Permission[] = PERMISSIONS;
 const ROLE_PERMISSIONS: Record<EffectiveAccess, readonly Permission[]> = {
   USER: [],
   FAMQ: [],
-  RECRUIT: ["admin.access", "users.view"],
-  HIGH_STAFF: [
-    "admin.access",
-    "logs.view",
-    "users.view",
-    "users.manage",
-    "users.ban",
-    "users.roles",
-    "settings.view",
-    "settings.manage",
-    "bot.manage",
-  ],
+  RECRUIT: ["users.view"],
+  CURATOR: ["users.view", "recruit.statistics"],
+  HIGH_STAFF: [],
+  DEP_OWNER: ["users.view", "logs.view", "recruit.statistics"],
   OWNER: ALL_PERMISSIONS,
   FULL_ACCESS: ALL_PERMISSIONS,
 };
@@ -61,9 +56,11 @@ const MANAGEABLE_STAFF_ROLES: Record<EffectiveAccess, readonly UserRole[]> = {
   USER: [],
   FAMQ: [],
   RECRUIT: [],
+  CURATOR: [],
   HIGH_STAFF: [],
-  OWNER: ["RECRUIT", "HIGH_STAFF", "OWNER"],
-  FULL_ACCESS: ["RECRUIT", "HIGH_STAFF", "OWNER"],
+  DEP_OWNER: [],
+  OWNER: ["RECRUIT", "CURATOR", "HIGH_STAFF", "DEP_OWNER", "OWNER"],
+  FULL_ACCESS: ["RECRUIT", "CURATOR", "HIGH_STAFF", "DEP_OWNER", "OWNER"],
 };
 
 function configuredFullAccessDiscordIds(): Set<string> {

@@ -1,5 +1,7 @@
 import type { Family } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { getEffectiveAccess } from "@/lib/permissions/rbac";
+import { canUseFeature } from "@/lib/permissions/features";
 
 export class ApplicationClaimError extends Error {}
 
@@ -33,7 +35,7 @@ export async function claimApplicationFromDiscord(eventId: string, discordId: st
   const event = await prisma.auditLog.findFirst({ where: { id: eventId, action: { in: ["APPLICATION_CREATED", "PROMOTION_APPLICATION_CREATED", "AFK_APPLICATION_CREATED"] } } });
   if (!event?.targetId) throw new ApplicationClaimError("Заявка не найдена.");
   const user = await prisma.user.findUnique({ where: { discordId } });
-  if (!user || user.status !== "ACTIVE" || !["RECRUIT", "HIGH_STAFF", "OWNER"].includes(user.role)) throw new ApplicationClaimError("У вас нет прав брать заявки.");
+  if (!user || user.status !== "ACTIVE" || !canUseFeature(getEffectiveAccess(user), "dashboard")) throw new ApplicationClaimError("У вас нет прав брать заявки.");
   const family = event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata) && "family" in event.metadata ? event.metadata.family : null;
   if (family !== "MEMPHIS") throw new ApplicationClaimError("Семья заявки не определена.");
   if (event.action === "APPLICATION_CREATED") {

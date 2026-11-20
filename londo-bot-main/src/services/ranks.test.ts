@@ -39,6 +39,12 @@ test("active rank resolution ignores legacy Phoenix roles", () => {
   assert.equal(resolveFamilyRank(member([rank("LONDO")]), "PHOENIX"), null);
 });
 
+test("High Staff outranks curator, which still outranks Londo", () => {
+  const curator = rank("MEMPHIS_CUR_RECRUIT"), londo = rank("LONDO"), highStaff = rank("MEMPHIS_HIGH_STAFF");
+  assert.equal(resolveFamilyRank(member([curator, londo], "curator", { [londo]: "Londo" }), "MEMPHIS")?.key, "MEMPHIS_CUR_RECRUIT");
+  assert.equal(resolveFamilyRank(member([curator, highStaff]), "MEMPHIS")?.key, "MEMPHIS_HIGH_STAFF");
+});
+
 test("roster sync reports Memphis only and keeps rankless members", () => {
   const dual = member([familyRoles.fam, familyRoles.memphis, "333333333333333333", rank("MEMPHIS_HIGH_STAFF")]);
   const rankless = member([familyRoles.fam, familyRoles.memphis], "rankless");

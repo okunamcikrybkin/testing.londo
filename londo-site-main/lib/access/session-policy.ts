@@ -8,10 +8,10 @@ export function sessionStaffState(session: {
   const famqFamilies=resolveFamqFamilies(session.user.accessSnapshot?.roleIds);
   const grant = session.user.staffAccessGrants[0];
   const credential = session.user.staffAccessCredential;
-  const approvedRole = grant?.memphisRole ?? "USER";
+  const approvedRole = session.user.role === "CURATOR" ? "CURATOR" : grant?.memphisRole ?? "USER";
   const pinConfigured = Boolean(credential?.pinSetAt);
   const pinVerified = fullAccess || Boolean(grant && credential?.pinSetAt && session.staffPinVerifiedAt && session.staffPinCredentialVersion === credential.credentialVersion);
   return { famqFamilies: famqFamilies.filter(family => family === "MEMPHIS"), baseFamilyAccess: {MEMPHIS: famqFamilies.includes("MEMPHIS") ? "FAMQ" as const : "USER" as const, PHOENIX: "USER" as const}, approvedRole, pinConfigured, pinVerified, pinRequired: !fullAccess && approvedRole !== "USER" && !pinVerified,
     role: fullAccess ? session.user.role : pinVerified ? approvedRole : "USER" as UserRole,
-    familyAccess: pinVerified && grant ? { MEMPHIS: grant.memphisRole, PHOENIX: "USER" as const } : { MEMPHIS: emptyScopes.memphisRole, PHOENIX: "USER" as const } };
+    familyAccess: pinVerified && grant ? { MEMPHIS: approvedRole, PHOENIX: "USER" as const } : { MEMPHIS: emptyScopes.memphisRole, PHOENIX: "USER" as const } };
 }

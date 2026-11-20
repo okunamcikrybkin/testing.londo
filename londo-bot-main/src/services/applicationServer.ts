@@ -24,7 +24,7 @@ type ValidationIssue = { field: string; expected: string; kind: "missing" | "inv
 type ApplicationValidation = { ok: true; application: Application } | { ok: false; issues: ValidationIssue[] };
 
 const MAX_REJECTION_REASON_LENGTH = 1_000;
-const ACCESS_ROLE_LABELS: Record<string, string> = { USER: "Участник", RECRUIT: "Рекрутер", HIGH_STAFF: "Старший сотрудник", OWNER: "Владелец" };
+const ACCESS_ROLE_LABELS: Record<string, string> = { USER: "Участник", RECRUIT: "Рекрутер", CURATOR: "Куратор рекрутов", HIGH_STAFF: "Старший сотрудник", DEP_OWNER: "Заместитель (DEP.OWNER)", OWNER: "Владелец" };
 export function accessRequestChannelId(value = process.env.ACCESS_REQUEST_CHANNEL_ID): string | null {
   const id = value?.trim();
   return id && /^\d{17,20}$/.test(id) ? id : null;

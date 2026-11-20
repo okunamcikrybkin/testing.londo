@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db/prisma";
 import { getEffectiveAccess } from "@/lib/permissions/rbac";
-import { resolveDiscordAccess } from "./resolver";
+import { hasRecruitCuratorRole, resolveDiscordAccess } from "./resolver";
 import { parseAccessObservation, type AccessObservation } from "./protocol";
-import { lockAccess, restrictGrant } from "./store";
+import { ROLE_ORDER } from "./policy";
+import { invalidateStaffSessions, lockAccess, restrictGrant } from "./store";
 
-/** Discord observations change eligibility and may restrict an existing grant, never create one. */
+/** Discord observations update eligibility; only a top-ranked curator role grants access automatically. */
 export async function syncDiscordAccess(input: AccessObservation) {
   const observation = parseAccessObservation(input);
   return prisma.$transaction(async tx => {
@@ -17,8 +18,43 @@ export async function syncDiscordAccess(input: AccessObservation) {
     const { familyAccess } = resolveDiscordAccess(observation.roleIds);
     const state = { observedAt, memphisRole: familyAccess.MEMPHIS, phoenixRole: familyAccess.PHOENIX, roleIds: observation.roleIds };
     await tx.userAccessSnapshot.upsert({ where: { userId: user.id }, create: { userId: user.id, ...state }, update: state });
-    const restricted = await restrictGrant(tx, user.id, user.staffAccessGrants[0], state, observation.trigger);
-    return { status: restricted ? "RESTRICTED" : "ELIGIBILITY_UPDATED" };
+    const curatorPresent = hasRecruitCuratorRole(observation.roleIds);
+    let activeGrant: (typeof user.staffAccessGrants)[number] | undefined = user.staffAccessGrants[0];
+    let curatorAccessChanged = false;
+    let curatorGrantRemoved = false;
+
+    const activeRole = activeGrant && ROLE_ORDER[activeGrant.role] > ROLE_ORDER[user.role] ? activeGrant.role : user.role;
+    if (curatorPresent && familyAccess.MEMPHIS === "CURATOR" && activeRole !== "OWNER" && ROLE_ORDER[activeRole] <= ROLE_ORDER.CURATOR) {
+      if (user.role !== "CURATOR") {
+        await tx.user.update({ where: { id: user.id }, data: { role: "CURATOR" } });
+        await tx.auditLog.create({ data: { action: "ACCESS_CURATOR_ROLE_APPLIED", targetType: "User", targetId: user.id, metadata: { previousRole: user.role, trigger: observation.trigger } } });
+        curatorAccessChanged = true;
+      }
+      if (!activeGrant) {
+        activeGrant = await tx.staffAccessGrant.create({ data: { userId: user.id, role: "CURATOR", memphisRole: "CURATOR", phoenixRole: "USER" } });
+        await tx.staffAccessCredential.upsert({ where: { userId: user.id }, create: { userId: user.id }, update: {} });
+        await tx.auditLog.create({ data: { action: "ACCESS_CURATOR_ROLE_GRANTED", targetType: "User", targetId: user.id, metadata: { trigger: observation.trigger } } });
+        curatorAccessChanged = true;
+      }
+    } else if (curatorPresent && activeGrant && familyAccess.MEMPHIS !== "CURATOR" && ROLE_ORDER[familyAccess.MEMPHIS] >= ROLE_ORDER[activeGrant.role] && ROLE_ORDER[activeGrant.role] > ROLE_ORDER[user.role]) {
+      await tx.user.update({ where: { id: user.id }, data: { role: activeGrant.role } });
+      await tx.auditLog.create({ data: { action: "ACCESS_ROLE_RESTORED_HIERARCHY", targetType: "User", targetId: user.id, metadata: { previousRole: user.role, restoredRole: activeGrant.role, trigger: observation.trigger } } });
+      curatorAccessChanged = true;
+    } else if (!curatorPresent && user.role === "CURATOR") {
+      if (activeGrant?.role === "CURATOR" && !activeGrant.sourceRequestId && !activeGrant.grantedByUserId) {
+        await tx.staffAccessGrant.update({ where: { id: activeGrant.id }, data: { revokedAt: new Date(), revokeReason: "DISCORD_CURATOR_ROLE_REMOVED" } });
+        activeGrant = undefined;
+        curatorGrantRemoved = true;
+        await invalidateStaffSessions(tx, user.id);
+      }
+      const restoredRole = activeGrant?.role ?? "USER";
+      await tx.user.update({ where: { id: user.id }, data: { role: restoredRole } });
+      await tx.auditLog.create({ data: { action: "ACCESS_CURATOR_ROLE_REMOVED", targetType: "User", targetId: user.id, metadata: { restoredRole, trigger: observation.trigger } } });
+      curatorAccessChanged = true;
+    }
+
+    const restricted = activeGrant ? await restrictGrant(tx, user.id, activeGrant, state, observation.trigger) : false;
+    return { status: restricted ? "RESTRICTED" : curatorGrantRemoved ? "CURATOR_ACCESS_REVOKED" : curatorAccessChanged ? "CURATOR_ACCESS_UPDATED" : "ELIGIBILITY_UPDATED" };
   });
 }
 export async function refreshDiscordEligibility(discordId: string): Promise<void> {

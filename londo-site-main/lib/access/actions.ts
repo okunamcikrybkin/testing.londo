@@ -10,7 +10,7 @@ async function run(operation: (id: string) => Promise<{ message: string }>): Pro
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     const session = token ? await prisma.session.findUnique({ where: { tokenHash: hashSessionToken(token) }, select: { id: true } }) : null;
     if (!session) throw new AccessError("Войдите в аккаунт.", 401);
-    const result = await operation(session.id); revalidatePath("/access"); return { ok: true, message: result.message };
+    const result = await operation(session.id); revalidatePath("/access"); revalidatePath("/access/manage"); return { ok: true, message: result.message };
   } catch (e) { return { ok: false, message: e instanceof AccessError ? e.message : "Не удалось выполнить действие." }; }
 }
 export async function createAccessRequest(): Promise<AccessActionState> { return run(createStaffRequest); }

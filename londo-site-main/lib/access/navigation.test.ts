@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {navigationForAccess,userMenuForAccess,isNavigationCurrent} from "../permissions/features";
-test("fixed global navigation and compact user menu for all six access levels",()=>{
- const expected={USER:["О LONDO","Доступ"],FAMQ:["О LONDO","Рулетка","Доступ","Повышения"],RECRUIT:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],HIGH_STAFF:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],OWNER:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],FULL_ACCESS:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"]};
+test("fixed global navigation and compact user menu for all eight access levels",()=>{
+ const expected={USER:["О LONDO","Доступ"],FAMQ:["О LONDO","Рулетка","Доступ","Повышения"],RECRUIT:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],CURATOR:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],HIGH_STAFF:["О LONDO","Рулетка","Доступ","Повышения"],DEP_OWNER:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],OWNER:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"],FULL_ACCESS:["О LONDO","Рулетка","Панель рекрута","Доступ","Повышения"]};
  for(const [role,labels] of Object.entries(expected)){
   const main=navigationForAccess(role),personal=userMenuForAccess(role);
   assert.deepEqual(main.map(i=>i.label),labels);
-  assert.deepEqual(personal.map(i=>i.label),["Профиль",...(role==="HIGH_STAFF"||role==="OWNER"||role==="FULL_ACCESS"?["Панель администратора","Аудит сайта","Аудит Discord"]:[])]);
+  const extra=role==="CURATOR"?["Статистика рекрутов"]:role==="DEP_OWNER"?["Статистика рекрутов","Аудит сайта","Аудит Discord"]:role==="OWNER"||role==="FULL_ACCESS"?["Панель администратора","Статистика рекрутов","Аудит сайта","Аудит Discord"]:[];
+  assert.deepEqual(personal.map(i=>i.label),["Профиль",...extra]);
   assert.equal(main.some(i=>personal.some(p=>p.href===i.href)),false);
  }
 });
@@ -20,7 +21,7 @@ test("active state separates personal access, management and profile routes",()=
  for(const path of ["/profile","/profile/customize"]){assert.equal(main.some(i=>isNavigationCurrent(i.href,path)),false);assert.equal(userMenuForAccess("USER").filter(i=>isNavigationCurrent(i.href,path)).length,1);}
  assert.equal(userMenuForAccess("USER").some(i=>isNavigationCurrent(i.href,"/settings/interface")),false);
  for(const [path,label] of [["/dashboard","Панель рекрута"],["/roulette","Рулетка"],["/about","О LONDO"]])assert.deepEqual(main.filter(i=>isNavigationCurrent(i.href,path)).map(i=>i.label),[label]);
- assert.deepEqual(userMenuForAccess("HIGH_STAFF").filter(i=>isNavigationCurrent(i.href,"/logs/audit_123?source=site")).map(i=>i.label),["Аудит сайта"]);
- assert.deepEqual(userMenuForAccess("HIGH_STAFF").filter(i=>isNavigationCurrent(i.href,"/logs/event_123?source=discord")).map(i=>i.label),["Аудит Discord"]);
+ assert.deepEqual(userMenuForAccess("DEP_OWNER").filter(i=>isNavigationCurrent(i.href,"/logs/audit_123?source=site")).map(i=>i.label),["Аудит сайта"]);
+ assert.deepEqual(userMenuForAccess("DEP_OWNER").filter(i=>isNavigationCurrent(i.href,"/logs/event_123?source=discord")).map(i=>i.label),["Аудит Discord"]);
  assert.equal(userMenuForAccess("USER").some(i=>i.href.startsWith("/logs")),false);
 });

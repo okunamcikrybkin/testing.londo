@@ -13,13 +13,13 @@ function normalizedRoleName(value: string): string {
 export function resolveFamilyRank(member: GuildMember, family: Family): ResolvedFamilyRank | null {
   if (family !== "MEMPHIS") return null;
   const scopedRanks = FAMILY_RANKS.filter((rank) => rank.scopes.includes(family));
-  const roles = [...member.roles.cache.values()];
-  const matchingByName = scopedRanks.filter((rank) => roles.some((role) =>
-    typeof role?.name === "string" && rank.roleNames?.includes(normalizedRoleName(role.name))
-  ));
-  const matching = matchingByName.length
-    ? matchingByName
-    : scopedRanks.filter((rank) => member.roles.cache.has(rank.roleId));
+  const roles = [...member.roles.cache.entries()];
+  const matching = roles.flatMap(([roleId, role]) => {
+    const named = scopedRanks.filter((rank) =>
+      typeof role?.name === "string" && rank.roleNames?.includes(normalizedRoleName(role.name))
+    );
+    return named.length ? named : scopedRanks.filter((rank) => rank.roleId === roleId);
+  });
   const rank = matching.sort((left, right) => right.priority - left.priority)[0];
 
   if (!rank || rank.priority < 7) { const promotion = resolvePromotionRank(id => member.roles.cache.has(id), family); if (promotion) return promotion; }

@@ -27,11 +27,12 @@ test("scope addition requires request; Discord can only intersect granted scopes
   assert.deepEqual(intersectScopes(granted,eligible),{memphisRole:"RECRUIT",phoenixRole:"USER"});
   assert.equal(canRequestScopes(granted,eligible),true);
   assert.equal(canRequestScopes(granted,granted),false);
+  assert.equal(canRequestScopes({memphisRole:"HIGH_STAFF",phoenixRole:"USER"},{memphisRole:"DEP_OWNER",phoenixRole:"USER"}),true);
 });
 test("PIN next allows internal pages only; public profile remains accessible",()=>{
   for(const path of ["https://evil.test","//evil.test","/\\evil.test","/%2f%2fevil.test","/api/auth/sign-out","/access/pin/setup","/\n/evil.test"])assert.equal(safeStaffNext(path),"/dashboard");
   assert.equal(safeStaffNext("/applications/memphis?id=123"),"/applications/memphis?id=123");
   for(const path of ["/profile","/profile/customize","/access","/access/pin/verify","/roulette"])assert.equal(isStaffPage(path),false);
-  for(const path of ["/dashboard","/giveaways","/access/manage","/settings/rank-colors","/shop","/applications/memphis","/logs","/memphis/roster","/promotions/admin","/roulette/admin"])assert.equal(isStaffPage(path),true);
+  for(const path of ["/dashboard","/recruit-statistics","/giveaways","/access/manage","/settings/rank-colors","/shop","/applications/memphis","/logs","/memphis/roster","/promotions/admin","/roulette/admin"])assert.equal(isStaffPage(path),true);
 });
 

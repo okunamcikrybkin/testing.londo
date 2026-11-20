@@ -1,17 +1,21 @@
-// Shared by navigation and all server guards. No secrets or environment reads here.
-export const ACCESS_ORDER = {USER:0,FAMQ:1,RECRUIT:2,HIGH_STAFF:3,OWNER:4,FULL_ACCESS:5} as const;
+// Shared by navigation and all server guards. Feature access is explicit because rank order does not imply inherited permissions.
+export const ACCESS_ORDER = {USER:0,FAMQ:1,RECRUIT:2,CURATOR:3,HIGH_STAFF:4,DEP_OWNER:5,OWNER:6,FULL_ACCESS:7} as const;
 export type AccessLevel = keyof typeof ACCESS_ORDER;
 export const FEATURE_ACCESS = {
- discordChecks:"OWNER", roulette:"FAMQ", rouletteAdmin:"OWNER", promotionSettings:"OWNER", dashboard:"RECRUIT", accessManagement:"OWNER",
- notifications:"OWNER", factionRoles:"OWNER", giveaways:"HIGH_STAFF", shopManage:"HIGH_STAFF",
- logs:"HIGH_STAFF", discordLogs:"HIGH_STAFF", economy:"FULL_ACCESS", rankColors:"OWNER", recruitStatistics:"HIGH_STAFF",
- profile:"USER", aboutLondo:"USER", ownAccess:"USER", promotionApply:"FAMQ", resetPin:"FULL_ACCESS",
-} as const satisfies Record<string,AccessLevel>;
+ discordChecks:["OWNER","FULL_ACCESS"], roulette:["FAMQ","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER","OWNER","FULL_ACCESS"],
+ rouletteAdmin:["OWNER","FULL_ACCESS"], promotionSettings:["OWNER","FULL_ACCESS"], dashboard:["RECRUIT","CURATOR","DEP_OWNER","OWNER","FULL_ACCESS"], accessManagement:["OWNER","FULL_ACCESS"],
+ notifications:["OWNER","FULL_ACCESS"], factionRoles:["OWNER","FULL_ACCESS"], giveaways:["OWNER","FULL_ACCESS"], shopManage:["OWNER","FULL_ACCESS"],
+ logs:["DEP_OWNER","OWNER","FULL_ACCESS"], discordLogs:["DEP_OWNER","OWNER","FULL_ACCESS"], economy:["FULL_ACCESS"], rankColors:["OWNER","FULL_ACCESS"],
+ recruitStatistics:["CURATOR","DEP_OWNER","OWNER","FULL_ACCESS"], profile:["USER","FAMQ","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER","OWNER","FULL_ACCESS"],
+ aboutLondo:["USER","FAMQ","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER","OWNER","FULL_ACCESS"],
+ ownAccess:["USER","FAMQ","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER","OWNER","FULL_ACCESS"],
+ promotionApply:["FAMQ","RECRUIT","CURATOR","HIGH_STAFF","DEP_OWNER","OWNER","FULL_ACCESS"], resetPin:["FULL_ACCESS"],
+} as const satisfies Record<string,readonly AccessLevel[]>;
 export type Feature = keyof typeof FEATURE_ACCESS;
 export function meetsAccess(access:string,minimum:AccessLevel):boolean {
  return Object.hasOwn(ACCESS_ORDER,access) && ACCESS_ORDER[access as AccessLevel]>=ACCESS_ORDER[minimum];
 }
-export function canUseFeature(access:string,feature:Feature):boolean {return meetsAccess(access,FEATURE_ACCESS[feature]);}
+export function canUseFeature(access:string,feature:Feature):boolean {return FEATURE_ACCESS[feature].some(level=>level===access);}
 export const FEATURE_NAVIGATION: readonly {feature:Feature;href:string;label:string}[] = [
  {feature:"profile",href:"/profile",label:"Профиль"},
  {feature:"aboutLondo",href:"/about",label:"О LONDO"},
@@ -49,6 +53,7 @@ export const userMenuForAccess = (access:string) => {
  return [
   ...USER_MENU_ITEMS.filter(item=>canUseFeature(access,item.feature)),
   ...(adminPages.length ? [{feature:adminPages[0].feature,href:"/family-settings",label:"Панель администратора"}] : []),
+  ...(canUseFeature(access,"recruitStatistics") ? [navItem("recruitStatistics")] : []),
   ...(canUseFeature(access,"logs") ? [navItem("logs"),navItem("discordLogs")] : []),
  ];
 };
@@ -72,7 +77,7 @@ export function featureForPage(path:string):Feature|null {
  if(/^\/logs(?:\/|$)/.test(pathname))return pathname==="/logs"&&new URLSearchParams(query??"").get("source")==="discord"?"discordLogs":"logs";
   const p=path.split("?")[0];
  // The entry route participates in the existing staff-session PIN gate.
- if(p==="/family-settings")return [...FAMILY_SETTINGS_TABS].sort((a,b)=>ACCESS_ORDER[FEATURE_ACCESS[a.feature]]-ACCESS_ORDER[FEATURE_ACCESS[b.feature]])[0].feature;
+ if(p==="/family-settings")return "accessManagement";
  if(/^\/roulette\/admin(?:\/|$)/.test(p))return "rouletteAdmin";
  return FEATURE_NAVIGATION.filter(i=>p===i.href||p.startsWith(i.href+"/")).sort((a,b)=>b.href.length-a.href.length)[0]?.feature??null;
 }

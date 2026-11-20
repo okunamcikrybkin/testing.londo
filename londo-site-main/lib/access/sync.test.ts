@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FAMILY_RANKS } from "../rank-appearance/catalog";
 import { resolveDiscordAccess } from "./resolver";
+import { canRequestRole, getEligibleStaffRole } from "./discord-roles";
 import { parseAccessObservation } from "./protocol";
 const id = (key: string) => FAMILY_RANKS.find(rank => rank.key === key)!.roleId;
 test("removed Memphis Leader role is not part of the site rank catalog", () => {
@@ -14,9 +15,9 @@ test("removed Memphis Leader role is not part of the site rank catalog", () => {
 });
 const staffMapping = [
   ["OWNER", "OWNER"],
-  ["MEMPHIS_HIGH_STAFF", "RECRUIT"],
-  ["MEMPHIS_DEP_OWNER", "RECRUIT"],
-  ["MEMPHIS_CUR_RECRUIT", "RECRUIT"],
+  ["MEMPHIS_HIGH_STAFF", "HIGH_STAFF"],
+  ["MEMPHIS_DEP_OWNER", "DEP_OWNER"],
+  ["MEMPHIS_CUR_RECRUIT", "CURATOR"],
   ["MEMPHIS_RECRUIT", "RECRUIT"],
 ] as const;
 for (const [key, expected] of staffMapping) test(`${key} → ${expected}, configured ID and isolated scope`, () => {
@@ -31,13 +32,16 @@ for (const key of ["MAIN", "LONDEST_LONDO", "LONDO", "YOUNG_LONDO", "BABY_LONDO"
 });
 for (const [keys, expected] of [
   [["OWNER"], "OWNER"],
-  [["MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT"], "RECRUIT"],
+  [["MEMPHIS_HIGH_STAFF", "MEMPHIS_CUR_RECRUIT"], "HIGH_STAFF"],
+  [["MEMPHIS_DEP_OWNER", "MEMPHIS_CUR_RECRUIT"], "DEP_OWNER"],
   [[], "USER"],
 ] as const) test(`priority ${keys.join("+") || "none"}`, () => assert.equal(resolveDiscordAccess(keys.map(id)).role, expected));
 test("unknown role ignored and both family scopes retained independently", () => {
   assert.deepEqual(resolveDiscordAccess(["999999999999999999"]), { role: "USER", familyAccess: { MEMPHIS: "USER", PHOENIX: "USER" } });
-  assert.deepEqual(resolveDiscordAccess([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!, id("MEMPHIS_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
-  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_HIGH_STAFF"), id("MEMPHIS_CUR_RECRUIT")]).familyAccess, { MEMPHIS: "RECRUIT", PHOENIX: "USER" });
+  const curatorAndStaff = resolveDiscordAccess([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!, id("MEMPHIS_CUR_RECRUIT")]);
+  assert.equal(curatorAndStaff.role, "HIGH_STAFF");
+  assert.deepEqual(curatorAndStaff.familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
+  assert.deepEqual(resolveDiscordAccess([id("MEMPHIS_HIGH_STAFF"), id("MEMPHIS_CUR_RECRUIT")]).familyAccess, { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" });
 });
 test("configured recruiter role resolves to a requestable MEMPHIS scope", () => {
   const previous = process.env.DISCORD_RECRUIT_ROLE_IDS;
@@ -46,6 +50,11 @@ test("configured recruiter role resolves to a requestable MEMPHIS scope", () => 
     assert.deepEqual(resolveDiscordAccess([process.env.MEMPHIS_RECRUIT_ROLE_ID!]), {
       role: "RECRUIT",
       familyAccess: { MEMPHIS: "RECRUIT", PHOENIX: "USER" },
+    });
+    test("deputy owner Discord rank is requestable above high staff", () => {
+      assert.equal(getEligibleStaffRole([id("MEMPHIS_DEP_OWNER")]), "DEP_OWNER");
+      assert.equal(getEligibleStaffRole([id("MEMPHIS_HIGH_STAFF")]), "HIGH_STAFF");
+      assert.equal(canRequestRole("DEP_OWNER"), true);
     });
   } finally {
     if (previous === undefined) delete process.env.DISCORD_RECRUIT_ROLE_IDS;
@@ -57,7 +66,7 @@ test("missing/stale/future/forged observations rejected", () => {
   for (const bad of [null, {}, { ...valid, roleIds: undefined }, { ...valid, observedAt: new Date(Date.now() - 121_000).toISOString() }, { ...valid, observedAt: new Date(Date.now() + 60_000).toISOString() }, { ...valid, role: "OWNER" }]) assert.throws(() => parseAccessObservation(bad));
 });
 
-test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_ACCESS stays protected", async () => {
+test("endpoint syncs curator access, restricts other grants, and protects FULL_ACCESS", async () => {
   const require = createRequire(import.meta.url), esbuild = require("esbuild"), dir = mkdtempSync(join(tmpdir(), "access-sync-test-"));
   const originalFull = process.env.FULL_ACCESS_DISCORD_IDS, originalSecret = process.env.LONDO_BOT_API_SECRET;
   process.env.FULL_ACCESS_DISCORD_IDS = "100000000000000002"; process.env.LONDO_BOT_API_SECRET = "test-secret";
@@ -67,7 +76,8 @@ test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_
     export const prisma={$transaction:async fn=>fn(prisma),$executeRaw:async()=>0,
       user:{findUnique:async({where})=>where.discordId===state.user.discordId?state.user:null,update:async({data})=>{state.updates++;Object.assign(state.user,data);}},
       userAccessSnapshot:{upsert:async({create})=>{state.user.accessSnapshot=create;}},
-      staffAccessGrant:{update:async()=>{state.user.staffAccessGrants=[];},create:async({data})=>{state.user.staffAccessGrants=[{id:'g',...data}];}},
+      staffAccessGrant:{update:async()=>{state.user.staffAccessGrants=[];},create:async({data})=>{const grant={id:'g',...data};state.user.staffAccessGrants=[grant];return grant;}},
+      staffAccessCredential:{upsert:async()=>({})},
       session:{updateMany:async()=>{state.invalidated++;}},auditLog:{create:async({data})=>state.audits.push(data)}};
   `);
   try {
@@ -78,7 +88,8 @@ test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_
     assert.equal((await post(observation([process.env.OWNER_ROLE_ID!]),"bad")).status,401);
     await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"USER"); assert.equal(state.updates,0); assert.equal(state.audits.length,0);
     await post(observation([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!])); assert.equal(state.user.role,"USER","Discord addition never grants access");
-    // An approved grant is an independent input, not manufactured by Discord sync.
+    await post(observation([process.env.MEMPHIS_DEP_OWNER_ROLE_ID!])); assert.equal(state.user.role,"USER","Deputy access still requires approval"); assert.equal(state.user.accessSnapshot.memphisRole,"DEP_OWNER");
+    // Non-curator Discord roles cannot manufacture an approved grant.
     state.user.role="HIGH_STAFF"; state.user.staffAccessGrants=[{id:"approved",role:"HIGH_STAFF",memphisRole:"HIGH_STAFF",phoenixRole:"USER",grantedAt:new Date(),grantedByUserId:"owner",sourceRequestId:"request"}];
     const old=observation([process.env.DISCORD_HIGH_STAFF_ROLE_IDS!]); await post(old); assert.equal(state.invalidated,0);
     await post(observation([process.env.MEMPHIS_RECRUIT_ROLE_ID!])); assert.equal(state.user.role,"RECRUIT"); assert.equal(state.invalidated,1);
@@ -92,6 +103,18 @@ test("endpoint only updates eligibility; existing grants downgrade/revoke, FULL_
     state.user.discordId="100000000000000002";
     await post(observation([])); await post(observation([process.env.OWNER_ROLE_ID!])); assert.equal(state.updates,count); assert.equal(state.audits.length,logs);
     assert.deepEqual(state.audits.map((a:{action:string})=>a.action),["ACCESS_DOWNGRADED_DISCORD","ACCESS_REVOKED_DISCORD_ELIGIBILITY"]);
+    state.user.discordId="100000000000000001";
+    await post(observation([process.env.MEMPHIS_CUR_RECRUIT_ROLE_ID!]));
+    assert.equal(state.user.role,"CURATOR");
+    assert.equal(state.user.staffAccessGrants[0].role,"CURATOR");
+    const curatorAndDeputy = observation([process.env.MEMPHIS_CUR_RECRUIT_ROLE_ID!, process.env.MEMPHIS_DEP_OWNER_ROLE_ID!]);
+    assert.equal(resolveDiscordAccess(curatorAndDeputy.roleIds).role,"DEP_OWNER");
+    await post(curatorAndDeputy);
+    assert.equal(state.user.role,"CURATOR","higher Discord eligibility does not bypass access approval");
+    await post(observation([]));
+    assert.equal(state.user.role,"USER");
+    assert.equal(state.user.staffAccessGrants.length,0);
+    assert.equal(state.invalidated,3);
   } finally {
     if(originalFull===undefined)delete process.env.FULL_ACCESS_DISCORD_IDS;else process.env.FULL_ACCESS_DISCORD_IDS=originalFull;
     if(originalSecret===undefined)delete process.env.LONDO_BOT_API_SECRET;else process.env.LONDO_BOT_API_SECRET=originalSecret;

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 export function AccessRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const timer = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 5_000);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 30_000);
     return () => clearInterval(timer);
   }, [router]);
   return null;

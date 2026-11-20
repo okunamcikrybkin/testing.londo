@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Family, Prisma } from "@prisma/client";
 import type { SessionUser } from "../auth/session";
+import { canAccessFamilySpace } from "../families/access";
 import { canEditFamilyApplication } from "./edit-policy";
 import { editApplicationInTransaction } from "./edit-service";
 
@@ -31,7 +32,7 @@ for (const status of ["NEW", "CALL"]) test(`RECRUIT edits ${status} and records 
   assert.equal(f.events.length, 1);
   assert.deepEqual(f.events[0].data, { action: "APPLICATION_EDITED", actorId: user.id, targetType: "FamilyApplication", targetId: "app", metadata: { applicationId: "app", family: "MEMPHIS", editorUserId: user.id, editorDiscordId: user.discordId, editorDisplayName: "Editor", changes: [{ field: "joinReason", before: answers.joinReason, after: changed.joinReason }] } });
 });
-for (const access of ["USER", "FAMQ"] as const) test(`${access} denied even with stale scope`, async () => {
+for (const access of ["USER", "FAMQ", "HIGH_STAFF"] as const) test(`${access} denied even with stale scope`, async () => {
   const f = fixture();
   await assert.rejects(editApplicationInTransaction(f.tx, { ...user, effectiveAccess: access }, "MEMPHIS", "app", changed));
   assert.equal(f.writes(), 0);
@@ -43,8 +44,12 @@ test("authentication and PIN required; OWNER scope is enforced", async () => {
     assert.equal(f.writes(), 0);
   }
 });
-for (const access of ["RECRUIT", "HIGH_STAFF", "OWNER"] as const) test(`${access} allowed within approved family`, () => {
+for (const access of ["RECRUIT", "CURATOR", "DEP_OWNER", "OWNER"] as const) test(`${access} allowed within approved family`, () => {
   assert.equal(canEditFamilyApplication({ ...user, effectiveAccess: access, familyAccess: { MEMPHIS: access, PHOENIX: "USER" } }, "MEMPHIS"), true);
+});
+test("HIGH_STAFF has family-member access but cannot enter recruiter spaces", () => {
+  assert.equal(canAccessFamilySpace({ discordId: user.discordId, role: "HIGH_STAFF", familyAccess: { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" } }, "MEMPHIS"), false);
+  assert.equal(canEditFamilyApplication({ ...user, effectiveAccess: "HIGH_STAFF", familyAccess: { MEMPHIS: "HIGH_STAFF", PHOENIX: "USER" } }, "MEMPHIS"), false);
 });
 for (const family of ["MEMPHIS", "PHOENIX"] as const) {
   test(`opposite scope denied for ${family}`, async () => {

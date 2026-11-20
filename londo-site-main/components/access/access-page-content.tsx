@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { AccessRefresh } from "@/components/access/access-refresh";
 import { StaffAccessAction } from "@/components/access/staff-access-controls";
+import { AccessRequestActions } from "@/components/access/access-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { accessPageData } from "@/lib/access/view";
 import { canRequestScopes, emptyScopes, highestScope, type Scopes } from "@/lib/access/policy";
@@ -41,11 +42,12 @@ function Account({ user }: { user: { displayName: string; username: string; avat
 export async function AccessPageContent({ searchParams, managementOnly = false }: { searchParams: Promise<{ tab?: string }>; managementOnly?: boolean }) {
   const user = await getCurrentUser(); if (!user) redirect("/");
   const data = await accessPageData(user), full = getEffectiveAccess(user) === "FULL_ACCESS";
-  const eligible = data.snapshot ?? emptyScopes, pending = data.requests.find(r => r.status === "PENDING");
+  const eligible = data.snapshot ? { ...data.snapshot, ...(user.approvedRole === "CURATOR" ? { memphisRole: "CURATOR" as const } : {}) } : emptyScopes, pending = data.requests.find(r => r.status === "PENDING");
   const mayRequest = !full && !pending && canRequestScopes(data.grant ?? emptyScopes, eligible);
   const ManagementHeading = managementOnly ? "h1" : "h2";
   const requestedTab = (await searchParams).tab;
   const tab = requestedTab === "active" || requestedTab === "history" ? requestedTab : "requests";
+  const displayedAccess = user.pinRequired ? user.approvedRole ?? user.effectiveAccess : user.effectiveAccess;
   const currentAccessLabel = ACCESS_LABELS[full ? "FULL_ACCESS" : highestScope(eligible)];
 
   return <div className="londo-page min-h-screen" data-ui-page="access"><Header user={user} /><AccessRefresh />
@@ -59,7 +61,7 @@ export async function AccessPageContent({ searchParams, managementOnly = false }
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
               <p className="text-sm uppercase tracking-[0.18em] text-accent-soft">Статус</p>
-              <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">{full ? "У тебя есть права администратора сайта" : user.effectiveAccess === "USER" ? "Ты участник сообщества LONDO" : `Твой статус: ${ACCESS_LABELS[user.effectiveAccess]}`}</h2>
+              <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">{full ? "У тебя есть права администратора сайта" : displayedAccess === "USER" ? "Ты участник сообщества LONDO" : `Твой статус: ${ACCESS_LABELS[displayedAccess]}`}</h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-muted">{full ? "Тебе доступны управление сайтом и основные настройки сообщества." : highestScope(eligible) === "USER" ? "Чтобы вступить в одну из семей, подай заявку. Для этого достаточно быть на Discord-сервере LONDO — специальные роли не нужны." : "Часть возможностей уже доступна. Если понадобится расширить права, отправь запрос — мы покажем, что делать дальше."}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {mayRequest && <StaffAccessAction action="REQUEST" label={data.grant ? "Запросить повышение / семейный доступ" : "Подать заявку на доступ"} />}
@@ -72,7 +74,7 @@ export async function AccessPageContent({ searchParams, managementOnly = false }
             <div className="rounded-[26px] border border-white/10 bg-[#0b0d11] p-5">
               <Account user={{ ...user, avatar: user.avatarUrl }} />
               <dl className="mt-5 space-y-4">
-                <div className="flex justify-between gap-3 border-b border-white/8 pb-3"><dt className="text-sm text-muted">Права на сайте</dt><dd><span className="londo-status-badge">{ACCESS_LABELS[user.effectiveAccess]}</span></dd></div>
+                <div className="flex justify-between gap-3 border-b border-white/8 pb-3"><dt className="text-sm text-muted">Права на сайте</dt><dd><span className="londo-status-badge">{ACCESS_LABELS[displayedAccess]}</span></dd></div>
                 <div className="flex justify-between gap-3 border-b border-white/8 pb-3"><dt className="text-sm text-muted">Статус в семье</dt><dd><span className="londo-status-badge">{currentAccessLabel}</span></dd></div>
                 <div className="flex justify-between gap-3 border-b border-white/8 pb-3"><dt className="text-sm text-muted">Одобренная семья</dt><dd className="font-semibold text-white">{full ? <span className="inline-flex items-center gap-2"><FamilyServerIcon family="MEMPHIS" size="inline" /></span> : scopes(data.grant ?? emptyScopes)}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-white/8 pb-3"><dt className="text-sm text-muted">Семейные роли</dt><dd className="text-right font-semibold text-white">{full ? "Все семьи" : scopes(eligible)}</dd></div>
@@ -128,7 +130,7 @@ export async function AccessPageContent({ searchParams, managementOnly = false }
               </dl>
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
                 <p className="text-sm text-muted">Подана {date(r.createdAt)}</p>
-                <div className="flex flex-wrap gap-2"><StaffAccessAction action="APPROVE" requestId={r.id} label="Одобрить" /><StaffAccessAction action="REJECT" requestId={r.id} label="Отклонить" /></div>
+                <AccessRequestActions requestId={r.id} />
               </div>
             </article>;
           }) : <div className="londo-card rounded-3xl p-7"><h3 className="font-semibold text-white">Новых запросов нет</h3><p className="mt-2 text-sm text-muted">Когда кто-то отправит запрос на доступ, он появится в этом списке.</p></div>)}

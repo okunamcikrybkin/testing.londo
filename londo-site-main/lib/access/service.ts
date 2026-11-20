@@ -79,7 +79,7 @@ export async function reviewStaffRequest(sessionId: string, requestId: string, a
     }
     await tx.staffAccessRequest.update({ where: { id: requestId }, data: { status: approve ? "APPROVED" : "REJECTED", reviewedByUserId: actor.userId, reviewedAt: new Date(), rejectionReason: approve ? null : reason!.trim() } });
     await tx.auditLog.create({ data: { actorId: actor.userId, action: approve ? "ACCESS_REQUEST_APPROVED" : "ACCESS_REQUEST_REJECTED", targetType: "User", targetId: target.id, metadata: { requestId, requestedRole: pending.requestedRole, ...(approve ? {} : { reason: reason!.trim() }) } } });
-    return { message: approve ? "Доступ одобрен. Пользователю нужно подтвердить PIN." : "Запрос отклонён.", notification: approve ? { discordId: target.discordId, displayName: target.displayName, username: target.username, requestedRole: pending.requestedRole, memphisRole: pending.memphisRole, phoenixRole: pending.phoenixRole } : null };
+    return { message: approve ? "Доступ одобрен. Для входа в панель пользователю нужно настроить или подтвердить PIN." : "Запрос отклонён.", notification: approve ? { discordId: target.discordId, displayName: target.displayName, username: target.username, requestedRole: pending.requestedRole, memphisRole: pending.memphisRole, phoenixRole: pending.phoenixRole } : null };
   });
   if (outcome.notification) await notifyAccessBot("/internal/discord/access/approved", outcome.notification);
   return { message: outcome.message };
@@ -95,6 +95,7 @@ export async function revokeStaffAccess(sessionId: string, userId: string) {
     manager(actor);
     const target = await tx.user.findUniqueOrThrow({ where: { id: userId } });
     if (getEffectiveAccess(target) === "FULL_ACCESS") throw new AccessError("Права администратора сайта нельзя отозвать.", 403);
+    if (target.role === "CURATOR") throw new AccessError("Чтобы отозвать доступ куратора, снимите с пользователя роль Cur. Recruit в Discord.", 409);
     const changed = await tx.staffAccessGrant.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date(), revokedByUserId: actor.userId, revokeReason: "MANUAL_REVOKE" } });
     await tx.user.update({ where: { id: userId }, data: { role: "USER" } });
     await invalidateStaffSessions(tx, userId);

@@ -29,9 +29,9 @@ const BOTH_FAMILIES = ["MEMPHIS"] as const;
 
 export const FAMILY_RANK_METADATA: readonly FamilyRankMetadata[] = [
   { key: "OWNER", label: "Owner", priority: 12, envName: "OWNER_ROLE_ID", scopes: BOTH_FAMILIES },
-  { key: "MEMPHIS_DEP_OWNER", label: "Dep. Owner (MEM)", priority: 10, envName: "MEMPHIS_DEP_OWNER_ROLE_ID", scopes: ["MEMPHIS"] },
-  { key: "MEMPHIS_HIGH_STAFF", label: "High Staff (MEM)", priority: 9, envName: "MEMPHIS_HIGH_STAFF_ROLE_ID", scopes: ["MEMPHIS"] },
-  { key: "MEMPHIS_CUR_RECRUIT", label: "Cur. Recruit (MEM)", priority: 8, envName: "MEMPHIS_CUR_RECRUIT_ROLE_ID", scopes: ["MEMPHIS"] },
+  { key: "MEMPHIS_DEP_OWNER", label: "Dep. Owner (MEM)", priority: 11, envName: "MEMPHIS_DEP_OWNER_ROLE_ID", scopes: ["MEMPHIS"] },
+  { key: "MEMPHIS_HIGH_STAFF", label: "High Staff (MEM)", priority: 10, envName: "MEMPHIS_HIGH_STAFF_ROLE_ID", scopes: ["MEMPHIS"] },
+  { key: "MEMPHIS_CUR_RECRUIT", label: "Куратор рекрутов", priority: 9, envName: "MEMPHIS_CUR_RECRUIT_ROLE_ID", scopes: ["MEMPHIS"] },
   { key: "MEMPHIS_RECRUIT", label: "Recruit (MEM)", priority: 7, envName: "MEMPHIS_RECRUIT_ROLE_ID", scopes: ["MEMPHIS"] },
   { key: "MAIN", label: "Main", priority: 6, envName: "MAIN_ROLE_ID", scopes: BOTH_FAMILIES },
   { key: "LONDEST_LONDO", label: "Londest Londo", priority: 5, envName: "LONDEST_LONDO_ROLE_ID", scopes: BOTH_FAMILIES },

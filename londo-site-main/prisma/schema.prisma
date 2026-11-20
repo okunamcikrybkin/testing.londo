@@ -10,7 +10,9 @@ datasource db {
 enum UserRole {
   USER
   RECRUIT
+  CURATOR
   HIGH_STAFF
+  DEP_OWNER
   OWNER
 }
 

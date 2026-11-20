@@ -19,6 +19,17 @@ type Item = {
   resolution?: { status: string; reviewerName: string; reviewerId?: string | null; reason?: string | null; resolvedAt?: string | null };
 };
 
+function failureReason(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = error.code;
+    if (typeof code === "number" || typeof code === "string") return `Discord/API error code ${code}`;
+  }
+  if (!(error instanceof Error)) return "unknown error";
+  if (error.message.startsWith("Notification API unavailable (HTTP ")) return error.message;
+  if (["Channel unavailable", "Ping role unavailable", "Notification update is incomplete", "Invalid notification"].includes(error.message)) return error.message;
+  return error.name;
+}
+
 export function notificationMessage(item: Item, siteUrl: string) {
   const url = new URL(item.path, siteUrl);
   const resolved = Boolean(item.resolution);
@@ -61,7 +72,7 @@ export class ApplicationNotifications {
   constructor(private guild: Guild, private config: SiteLogConfig) {}
   async request<T>(body: object): Promise<T> {
     const response = await fetch(new URL("/api/internal/notifications", this.config.siteUrl), { method: "POST", headers: { "content-type": "application/json", "x-londo-bot-secret": this.config.apiSecret }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw Error("Notification API unavailable");
+    if (!response.ok) throw Error(`Notification API unavailable (HTTP ${response.status})`);
     return response.json() as Promise<T>;
   }
   async options() {
@@ -109,9 +120,9 @@ export class ApplicationNotifications {
           const existing = recent.find(message => message.author.id === this.guild.client.user.id && message.nonce === nonce);
           const message = existing ?? await channel.send(notificationMessage(item, this.config.siteUrl));
           await this.request({ operation: "RECEIPT", eventId: item.eventId, family: item.family, channelId: channel.id, messageId: message.id });
-        } catch { logWarning(`Notification delivery pending: ${item.family}, event ${item.eventId}.`); }
+        } catch (error) { logWarning(`Notification delivery pending: ${item.family}, event ${item.eventId} (${failureReason(error)}).`); }
       }
-    } catch { logWarning("Application notifications unavailable; will retry."); } finally { this.running = false; }
+    } catch (error) { logWarning(`Application notifications unavailable; will retry (${failureReason(error)}).`); } finally { this.running = false; }
   }
   start() { if (this.timer) return; this.timer = setInterval(() => void this.tick(), 15000); this.timer.unref(); void this.tick(); }
   stop() { if (this.timer) clearInterval(this.timer); this.timer = null; }

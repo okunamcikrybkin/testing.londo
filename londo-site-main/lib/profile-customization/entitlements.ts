@@ -1,4 +1,4 @@
-const BADGE_RANKS: Record<string, string> = { MAIN: "MAIN", MEMPHIS_RECRUIT: "RECRUIT MEMPHIS", MEMPHIS_CUR_RECRUIT: "CUR. RECRUIT", MEMPHIS_HIGH_STAFF: "HIGH STAFF", MEMPHIS_DEP_OWNER: "DEP. OWNER" };
+const BADGE_RANKS: Record<string, string> = { MAIN: "MAIN", MEMPHIS_RECRUIT: "RECRUIT MEMPHIS", MEMPHIS_CUR_RECRUIT: "КУРАТОР РЕКРУТОВ", MEMPHIS_HIGH_STAFF: "HIGH STAFF", MEMPHIS_DEP_OWNER: "DEP. OWNER" };
 
 export function badgeEntitlements(role: string, memberships: readonly {family: string; rankRoleId: string | null}[], ranks: readonly {key: string; roleId: string}[]) {
   const badges = new Set<string>();

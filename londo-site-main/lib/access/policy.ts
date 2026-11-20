@@ -1,6 +1,6 @@
-import {featureForPage,FEATURE_ACCESS,meetsAccess} from "../permissions/features";
+import {featureForPage} from "../permissions/features";
 import type { UserRole } from "@/lib/permissions/rbac";
-export const ROLE_ORDER: Record<UserRole, number> = { USER: 0, RECRUIT: 1, HIGH_STAFF: 2, OWNER: 3 };
+export const ROLE_ORDER: Record<UserRole, number> = { USER: 0, RECRUIT: 1, CURATOR: 2, HIGH_STAFF: 3, DEP_OWNER: 4, OWNER: 5 };
 export type Scopes = { memphisRole: UserRole; phoenixRole: UserRole };
 export const emptyScopes: Scopes = { memphisRole: "USER", phoenixRole: "USER" };
 export const lowerRole = (a: UserRole, b: UserRole): UserRole => ROLE_ORDER[a] <= ROLE_ORDER[b] ? a : b;
@@ -23,7 +23,7 @@ export function safeStaffNext(value: unknown): string {
 export function isStaffPage(value: string): boolean {
   const path = value.split("?")[0];
   const feature=featureForPage(path);
-  if(feature && meetsAccess(FEATURE_ACCESS[feature],"RECRUIT"))return true;
+  if(feature && ["dashboard","giveaways","shopManage","logs","discordLogs","accessManagement","promotionSettings","notifications","factionRoles","rankColors","discordChecks","economy","recruitStatistics","rouletteAdmin"].includes(feature))return true;
   return /^\/(memphis|applications)(\/|$)/.test(path)
     || /^\/(promotions|roulette)\/admin(\/|$)/.test(path)
     || /^\/giveaways\/[^/]+/.test(path);

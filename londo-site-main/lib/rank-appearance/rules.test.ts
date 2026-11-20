@@ -7,10 +7,10 @@ import {join} from "node:path";
 import {FAMILY_RANKS,FAMILY_RANK_ENV_NAMES} from "./catalog";
 import {canManageRankColors,defaultRankColors,validateRankColors,getRankColor,DEFAULT_RANK_COLOR} from "./rules";
 
-test("only active FULL_ACCESS can manage colors, never raw OWNER/HIGH_STAFF",()=>{
+test("only active OWNER and FULL_ACCESS can manage colors",()=>{
  assert.equal(canManageRankColors({effectiveAccess:"FULL_ACCESS",status:"ACTIVE"}),true);
  assert.equal(canManageRankColors({effectiveAccess:"OWNER",status:"ACTIVE"}),true);
- for(const access of ["HIGH_STAFF","RECRUIT","FAMQ","USER"])assert.equal(canManageRankColors({effectiveAccess:access,status:"ACTIVE"}),false);
+ for(const access of ["HIGH_STAFF","DEP_OWNER","CURATOR","RECRUIT","FAMQ","USER"])assert.equal(canManageRankColors({effectiveAccess:access,status:"ACTIVE"}),false);
  assert.equal(canManageRankColors({effectiveAccess:"FULL_ACCESS",status:"BANNED"}),false);assert.equal(canManageRankColors(null),false);
 });
 test("catalog contains each configured role exactly once",()=>{
